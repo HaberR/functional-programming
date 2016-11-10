@@ -1,14 +1,31 @@
-type broadcast_message = { msg : bytes; }                                                  
-type id_message = { id : bytes; }
-type message = BroadcastMessage of broadcast_message | IdMessage of id_message
-val clients : ('_a, '_b) Hashtbl.t = <abstr> 
-val add_client : id_message -> Lwt_io.output_channel -> unit = <fun>
-val send : bytes -> Lwt_io.output_channel -> unit = <fun>
-val send_all : broadcast_message -> unit = <fun>
-val create_id_message : bytes -> message = <fun>
-val create_broadcast_message : bytes -> message = <fun>
-val parse_message : bytes -> message = <fun>
-val handle_message : bytes -> Lwt_io.output_channel -> unit = <fun>
-val handle_connection :
-  Lwt_io.input_channel -> Lwt_io.output_channel -> unit -> unit t = <fun>
-val accept_connection : Lwt_unix.file_descr * 'a -> unit t = <fun>
+open Types
+open Unix
+
+(* [create_id identifier] creates a request out
+ * of the user's identifier *)
+val create_id : string -> request
+
+(* [create_message msg] creates a Send request
+ * from [msg] *)
+val create_message : string -> request
+
+(* [process_response response] handles a
+ * response from the server, printing information
+ * as necessary *)
+val process_response : response -> unit
+
+(* [send_request rqst ()] sends a request to
+ * the server.*)
+val send_request : request -> unit
+
+(* [parse_command cmnd] takes a string and
+ * identifies which command it corresponds to.
+ * It then applies the appropriate handler function
+ * to the content of the command to get a request. *)
+val parse_command : string -> request
+
+(* [repl] is the loop which accepts and processes
+ * user commands. It should start by prompting
+ * for a user id *)
+val repl : unit
+

@@ -1,2 +1,2 @@
 main:
-	ocamlbuild -use-ocamlfind -pkgs lwt,lwt.unix main.byte
+	ocamlbuild -use-ocamlfind -pkgs lwt,lwt.unix,unix main.byte
