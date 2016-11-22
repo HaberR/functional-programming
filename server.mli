@@ -1,5 +1,6 @@
 open Types
 open Unix
+open Datastruct
 
 (* [send message oc] sends the message to the user
  * specified by the output channel [oc] *)
