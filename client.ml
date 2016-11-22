@@ -1,24 +1,17 @@
-open Lwt
+open Json
 
 (* type message = {sender : string ; message : string} *)
 
-type broadcast_message = {
-  msg: string
-}
+(*
+let rec repl () =
 
-type id_message = {
-  id: string
-}
-
-type message =
-  | BroadcastMessage of broadcast_message
-  | IdMessage of id_message
+let connect id = 
+  *)
 
 
-let create_id_message str =
-  IdMessage {id=String.sub str 3 (String.length str - 3)}
+let initiate machine port = 
+  print_string "enter your id: ";
+  print_string machine;
+  print_string port
 
-let create_broadcast_message str =
-  BroadcastMessage {msg=str}
-
-
+let _ = initiate Sys.argv.(1) Sys.argv.(2)
