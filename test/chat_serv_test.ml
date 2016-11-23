@@ -17,43 +17,46 @@ type message =
   | IdMessage of id_message
 
 let create_id_message str =
-	(*use String.sub to ignore the 'id' part of the string*)
-  IdMessage {id=String.sub str 3 (String.length str - 3)}
+  (*use String.sub to ignore the 'id' part of the string*)
+  IdMessage {id= try String.sub str 3 (String.length str - 3) with _ -> "qkwejr"}
 
 let create_broadcast_message str id =
   BroadcastMessage {msg=str ; sender=id}
 
 let msg_to_string msg = 
-	msg.sender ^ ": " ^ msg.msg 
-
+  msg.sender ^ ": " ^ msg.msg 
 
 let clients = Hashtbl.create 100
 let clientList = ref [] 
 
 let add_client msg oc =
   Hashtbl.replace clients msg.id oc ;
-	clientList := (oc,msg.id)::!clientList
+  clientList := (oc,msg.id)::!clientList ;
+  Lwt.return () 
 
-let send msg recipient =
-  Lwt_io.write_line recipient (msg_to_string msg) |> Lwt_main.run 
-	(*output_string recipient (msg_to_string msg) *)
- 
+let send msg recipient = 
+  Lwt_io.write_line recipient (msg_to_string msg)
+  (*output_string recipient (msg_to_string msg) *)
+
 
 let send_all msg oc =
-	(*list of the out channels for all clients*)
+  (*list of the out channels for all clients*)
   let all_clients = Hashtbl.fold (fun k v acc -> v :: acc) clients [] in
 (*do not send to the user who sent the initial message*)
-  List.iter (fun s -> if s==oc then () else send msg s) all_clients
+  List.iter (fun s -> if s==oc then () else let _ = send msg s in ()) all_clients
+  |> return 
 
 (*let parse_message msg oc =
-	let id_reg = Str.regexp "id:" in 
-	if Str.string_match id_reg msg 0 then create_id_message msg 
-	else create_broadcast_message msg (List.assoc oc !clientList)*)
+  let id_reg = Str.regexp "id:" in 
+  if Str.string_match id_reg msg 0 then create_id_message msg 
+  else create_broadcast_message msg (List.assoc oc !clientList)*)
 
 let parse_message msg oc =
-  match String.sub msg 0 2 with
-  | "id" -> create_id_message msg
+  try 
+  match String.sub msg 0 3 with
+  | "id:" -> create_id_message msg
   | _ -> create_broadcast_message msg (List.assoc oc !clientList)
+  with Invalid_argument _ -> create_broadcast_message msg (List.assoc oc !clientList)
 
 let handle_message msg oc =
   match parse_message msg oc with
@@ -64,7 +67,7 @@ let rec handle_connection ic oc () =
   Lwt_io.read_line_opt ic >>=
     (fun msg ->
       match msg with
-      | Some msg -> Lwt.return (handle_message msg oc) >>= handle_connection ic oc
+      | Some msg -> handle_message msg oc >>= handle_connection ic oc
       | None -> Lwt_log.info "Connection closed!" >>= return)
 
 let accept_connection conn =
