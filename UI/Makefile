@@ -1,2 +1,2 @@
 main:
-	corebuild -pkgs lwt,core back_end.byte
+	corebuild -pkgs lwt,core requester.byte

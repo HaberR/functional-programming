@@ -32,11 +32,11 @@ type req_header =
 type request = 
   | Message of msg
   | Login of id
-  | Block of id
+  | Block of id * id
   | Listrooms of id
   | Listmessages of chatroom
   | Newroom of chatroom 
-  | Getroom of string
+  | Getroom of id * string
   | Listusers [@@deriving sexp]
 
 type resp = 
