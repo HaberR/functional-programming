@@ -1,5 +1,7 @@
 open Types
 open Lwt
+open Dummy_client
+
 (* This module is nothing more
  * than a utility module for communicating 
  * with the server. All it does is takes the
@@ -99,3 +101,4 @@ module MakeRequester (Cl : Client) = struct
     Cl.send_req req >|= snd
 
 end
+
