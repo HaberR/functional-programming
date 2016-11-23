@@ -10,7 +10,7 @@ module type Client = sig
 
   val init : unit -> unit
 
-  val send_req : request -> resp_wo_head Lwt.t
+  val send_req : 'a request -> resp_wo_head Lwt.t
 
 end
 
@@ -70,21 +70,21 @@ module MakeBackend (Cl : Client) = struct
     else raise ServerError
 
   let login identifier =
-    let req = (Login, Register identifier) in
+    let req = (Login, identifier) in
     Cl.send_req req >|= fun (_,succ) ->
     if succ then st := { mode = !st.mode; user = identifier }
     else raise FailedLogin
 
   let see_chatrooms () =
     in_normal_mode ();
-    let req = (Listrooms, Seerooms !st.user) in
+    let req = (Listrooms, !st.user) in
     let f = function
       | Chatrooms clst -> clst | _ -> raise ClientError in
     Cl.send_req req >|= (handle_response f)
 
   let see_users =
     in_normal_mode ();
-    let req = (Listusers, Reqnone) in
+    let req = (Listusers, None) in
     let f = function
       | Users lst -> lst | _ -> raise ClientError in
     Cl.send_req req >|= (handle_response f)

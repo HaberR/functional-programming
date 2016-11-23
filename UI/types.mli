@@ -1,8 +1,6 @@
 (* id is the identifier for the user *)
 type id = string
 
-type friends = id list
-
 type chatroom =
   {
     name : string;
@@ -41,36 +39,51 @@ type resp_header = Message | Login*)
 (* [req_header] contains the meta information
  * indicating what type of a request this is.
  * This is necessary for parsing from json *)
-type req_header = Message | Login | Newroom | History | Block | Listrooms | Listusers
+type req_header = 
+  | Message 
+  | Login 
+  | Newroom 
+  | Block 
+  | Listrooms | Listusers | Listmessages
 
 (* [req_content] is the specific content for the
  * request. It varies based on the type of
  * request *)
-type req_content = 
+(*type req_content = 
+  
   | Send of msg 
   | Register of id 
   | Openroom of chatroom
-  | Retrieve of msg option
+  | Retrieve of chatroom
   | Ignore of id
   | Seerooms of id
   | Reqnone
+  *)
 
 (* [resp_content] is the specific content for the
  * response. It varies based on the type of
  * response *)
-type resp_content = 
+(*type resp_content = 
   | Messages of msg list
   | Chatrooms of chatroom list
   | Users of id list
   | Respnone
+  *)
 
 (* request is the type of requests that the client
  * may send to the server*)
-type request = req_header * req_content
+type 'a request = req_header * 'a
 
 (* the type of the response *)
-type response = req_header * resp_content * success
+type 'a response = req_header * 'a * success
 
-type resp_wo_head = resp_content * success
+type 'a resp_wo_head = 'a * success
 
+val req_to_string : 'a request -> string
+
+val resp_to_string : 'a response -> string
+
+val req_from_string : string -> 'a request
+
+val resp_from_string : string -> 'a response
 

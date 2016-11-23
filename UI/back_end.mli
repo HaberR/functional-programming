@@ -13,7 +13,7 @@ module type Client = sig
 
   val init : unit -> unit
 
-  val send_req : request -> resp_wo_head Lwt.t
+  val send_req : 'a request -> resp_wo_head Lwt.t
 
 end
 
