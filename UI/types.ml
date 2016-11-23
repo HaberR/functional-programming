@@ -14,16 +14,18 @@ type msg =
     room : chatroom;
     message : string; 
     timestamp : float
-  } [@@deriving sexp] 
+  } [@@deriving sexp]
 
 type success = bool [@@deriving sexp]
 
+(*
 type req_header = 
   | Message 
   | Login 
   | Newroom 
   | Block 
-  | Listrooms | Listusers | Listmessages [@@deriving sexp]
+  | Listrooms | Listusers | Listmessages
+  *)
 
 (* request is the type of requests that the client
  * may send to the server*)
@@ -34,9 +36,15 @@ type request =
   | Listrooms of id
   | Listmessages of chatroom
   | Newroom of chatroom 
+  | Getroom of string
   | Listusers [@@deriving sexp]
 
-type resp = int [@@deriving sexp]
+type resp = 
+  | Chatroom of chatroom
+  | Messages of msg list
+  | Chatrooms of chatroom list
+  | Users of id list 
+  | Nothing [@@deriving sexp] 
 
 (* the type of the response *)
 type response = resp * success [@@deriving sexp]
@@ -46,3 +54,11 @@ let req_to_string req =
 
 let req_from_string s =
   s |> Sexp.of_string |> request_of_sexp
+
+let resp_to_string resp =
+  resp |> sexp_of_response |> Sexp.to_string
+
+let resp_from_string s =
+  s |> Sexp.of_string |> response_of_sexp
+
+

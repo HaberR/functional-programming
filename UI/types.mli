@@ -44,16 +44,24 @@ type request =
   | Listrooms of id
   | Listmessages of chatroom
   | Newroom of chatroom
+  | Getroom of string
   | Listusers [@@deriving sexp]
+
+type resp = 
+  | Chatroom of chatroom
+  | Messages of msg list
+  | Chatrooms of chatroom list
+  | Users of id list 
+  | Nothing [@@deriving sexp] 
 
 (* the type of the response *)
 type response = resp * success
 
 val req_to_string : request -> string
 
-val resp_to_string : 'a response -> string
+val resp_to_string : response -> string
 
 val req_from_string : string -> request
 
-val resp_from_string : string -> 'a response
+val resp_from_string : string -> response
 

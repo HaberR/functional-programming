@@ -13,7 +13,7 @@ module type Client = sig
 
   val init : unit -> unit
 
-  val send_req : 'a request -> resp_wo_head Lwt.t
+  val send_req : request -> response Lwt.t
 
 end
 
@@ -28,11 +28,11 @@ module type Backend = sig
 
   val see_messsages : unit -> msg list Lwt.t
 
-  val block_user : unit -> success Lwt.t
+  val block_user : id -> success Lwt.t
 
   val send_message : string -> success Lwt.t
 
-  val enter_room : unit -> unit Lwt.t
+  val enter_room : string -> success Lwt.t
 
   val exit_room : unit -> unit
 end

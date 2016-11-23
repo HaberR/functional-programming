@@ -1,5 +1,11 @@
 open Types
 open Lwt
+(* This module is nothing more
+ * than a utility module for communicating 
+ * with the server. All it does is takes the
+ * necessary information for a request, sends
+ * out the request, and returns the deferred
+ * response *)
 
 exception WrongMode
 exception ServerError
@@ -10,7 +16,7 @@ module type Client = sig
 
   val init : unit -> unit
 
-  val send_req : 'a request -> resp_wo_head Lwt.t
+  val send_req : request -> response Lwt.t
 
 end
 
@@ -26,13 +32,13 @@ module type Backend = sig
 
   val see_messsages : unit -> msg list Lwt.t
 
-  val block_user : unit -> success Lwt.t
+  val block_user : id -> success Lwt.t
 
   val send_message : string -> success Lwt.t
 
-  val enter_room : unit -> state Lwt.t
+  val enter_room : string -> success Lwt.t
 
-  val exit_room : unit -> state
+  val exit_room : unit -> unit
 end
 
 module type BackendMaker =
@@ -70,41 +76,59 @@ module MakeBackend (Cl : Client) = struct
     else raise ServerError
 
   let login identifier =
-    let req = (Login, identifier) in
+    let req = Login identifier in
     Cl.send_req req >|= fun (_,succ) ->
     if succ then st := { mode = !st.mode; user = identifier }
     else raise FailedLogin
 
   let see_chatrooms () =
     in_normal_mode ();
-    let req = (Listrooms, !st.user) in
+    let req = Listrooms !st.user in
     let f = function
       | Chatrooms clst -> clst | _ -> raise ClientError in
     Cl.send_req req >|= (handle_response f)
 
-  let see_users =
+  let see_users () =
     in_normal_mode ();
-    let req = (Listusers, None) in
+    let req = Listusers in
     let f = function
       | Users lst -> lst | _ -> raise ClientError in
     Cl.send_req req >|= (handle_response f)
     
-  let see_messsages = (* () -> msg list*)
+  let see_messsages () = (* () -> msg list*)
     let cr = get_chatroom () in
-    (*let req = (Listmessages, 
-    let req = (Retrieve *)
-    failwith "unimplemented"
+    let req = Listmessages cr in
+    let f = function
+      | Messages lst -> lst | _ -> raise ClientError in
+    Cl.send_req req >|= (handle_response f)
 
-  let block_user = (*id -> success*)
-    failwith "unimplemented"
+  let block_user identifier = (*id -> success*)
+    in_normal_mode ();
+    let req = Block identifier in
+    Cl.send_req req >|= snd
 
-  let send_message = (*string -> success*)
-    failwith "unimplemented"
+  let send_message info = (*string -> success*)
+    let cr = get_chatroom () in
+    let req = Message {
+      user = !st.user;
+      room = cr;
+      message = info;
+      timestamp = Unix.time ();
+    } in
+    Cl.send_req req >|= snd
 
-  let enter_room st cr =
-    st := { mode = Inroom (cr); user = !st.user }
+  let enter_room crname =
+    let req = Getroom crname in
+    let f (rc, succ) =
+      (if succ then 
+        match rc with
+        | Chatroom cr ->
+          st := { mode = Inroom (cr); user = !st.user }
+        | _ -> raise ClientError);
+      succ in
+    Cl.send_req req >|= f
 
-  let exit_room st =
-    st := { mode = General; user = !st.user}
+  let exit_room () =
+    st := {mode = General; user = !st.user}
 
 end
