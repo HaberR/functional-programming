@@ -25,32 +25,24 @@ type req_header =
   | Block 
   | Listrooms | Listusers | Listmessages [@@deriving sexp]
 
-(*
-type resp_content = 
-  | Messages of msg list
-  | Chatrooms of chatroom list
-  | Users of id list
-  | Respnone
-  *)
-
-type nn = Nothing [@@deriving sexp]
-
 (* request is the type of requests that the client
  * may send to the server*)
-type 'a request = req_header * 'a [@@deriving sexp]
+type request = 
+  | Message of msg
+  | Login of id
+  | Block of id
+  | Listrooms of id
+  | Listmessages of chatroom
+  | Newroom of chatroom 
+  | Listusers [@@deriving sexp]
+
+type resp = int [@@deriving sexp]
 
 (* the type of the response *)
-type 'a response = req_header * 'a * success [@@deriving sexp]
-
-type 'a resp_wo_head = 'a * success [@@deriving sexp]
+type response = resp * success [@@deriving sexp]
 
 let req_to_string req = 
-  let subordinate = 
-    match fst req with
-    | Message -> sexp_of_msg
-    | Login | Block | Listrooms -> sexp_of_id
-    | Newroom | Listmessages -> sexp_of_chatroom
-    | Listusers -> sexp_of_nn in
-  req |> sexp_of_request subordinate |> Sexp.to_string
+  req |> sexp_of_request |> Sexp.to_string
 
-
+let req_from_string s =
+  s |> Sexp.of_string |> request_of_sexp
