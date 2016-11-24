@@ -15,6 +15,7 @@ type id_message = {
 type message =
   | BroadcastMessage of broadcast_message
   | IdMessage of id_message
+  | CommandMessage of string 
 
 let create_id_message str =
   (*use String.sub to ignore the 'id' part of the string*)
@@ -26,6 +27,9 @@ let create_broadcast_message str id =
 let msg_to_string msg = 
   msg.sender ^ ": " ^ msg.msg 
 
+let lst_to_string lst = 
+  lst |> List.map snd |> List.fold_left (fun acc x -> acc^x^"; ") ""
+
 let clients = Hashtbl.create 100
 let clientList = ref [] 
 
@@ -34,10 +38,12 @@ let add_client msg oc =
   clientList := (oc,msg.id)::!clientList ;
   Lwt.return () 
 
-let send msg recipient = 
-  Lwt_io.write_line recipient (msg_to_string msg)
+(*let send msg recipient = 
+  Lwt_io.write_line recipient (msg_to_string msg)*)
   (*output_string recipient (msg_to_string msg) *)
 
+let send s recipient = 
+  Lwt_io.write_line recipient s 
 
 let send_all msg oc =
   (*list of the out channels for all clients*)
@@ -46,22 +52,25 @@ let send_all msg oc =
   List.iter (fun s -> if s==oc then () else let _ = send msg s in ()) all_clients
   |> return 
 
-(*let parse_message msg oc =
-  let id_reg = Str.regexp "id:" in 
-  if Str.string_match id_reg msg 0 then create_id_message msg 
-  else create_broadcast_message msg (List.assoc oc !clientList)*)
-
 let parse_message msg oc =
+  let id_reg = Str.regexp "id:" in 
+  let getUsers_reg = Str.regexp ";getusers" in 
+  if Str.string_match id_reg msg 0 then create_id_message msg 
+  else if Str.string_match getUsers_reg msg 0 then CommandMessage (lst_to_string !clientList)
+  else create_broadcast_message msg (List.assoc oc !clientList)
+
+(*let parse_message msg oc =
   try 
   match String.sub msg 0 3 with
   | "id:" -> create_id_message msg
   | _ -> create_broadcast_message msg (List.assoc oc !clientList)
-  with Invalid_argument _ -> create_broadcast_message msg (List.assoc oc !clientList)
+  with Invalid_argument _ -> create_broadcast_message msg (List.assoc oc !clientList)*)
 
 let handle_message msg oc =
   match parse_message msg oc with
   | IdMessage m -> add_client m oc   
-  | BroadcastMessage m -> send_all m oc 
+  | BroadcastMessage m -> send_all (msg_to_string m) oc 
+  | CommandMessage s -> send s oc 
 
 let rec handle_connection ic oc () =
   Lwt_io.read_line_opt ic >>=
