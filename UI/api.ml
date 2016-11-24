@@ -1,4 +1,4 @@
-open Types
+open Type_info
 open Lwt
 open Dummy_client
 

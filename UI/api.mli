@@ -1,4 +1,4 @@
-open Types
+open Type_info
 open Lwt
 (* functions in this file will be called
  * in order to make requests and get the responses in

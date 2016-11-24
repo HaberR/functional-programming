@@ -1,5 +1,8 @@
 #require "ppx_sexp_conv";;
 #require "core";;
-open Sexplib.Std;;
-#directory "_build";;
+#require "lwt";;
+#directory "_build"
+#load "type_info.cmo";;
+#load  "dummy_client.cmo";;
 #load  "api.cmo";;
+open Sexplib.Std;;

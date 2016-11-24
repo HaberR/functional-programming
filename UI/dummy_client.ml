@@ -1,4 +1,4 @@
-open Types
+open Type_info
 open Lwt
 
 let init () = ()
@@ -21,4 +21,3 @@ let send_req req =
       timestamp = 1.24939
     }]
   | Getroom _ -> Chatroom { name = "chat room"; participants = ["default 2"]}), true)
-

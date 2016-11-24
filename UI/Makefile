@@ -1,2 +1,2 @@
 main:
-	corebuild -pkgs lwt,core,Str api.byte
+	corebuild -pkgs lwt,core,Str,ANSIterminal interface.byte
