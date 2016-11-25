@@ -41,6 +41,4 @@ let go_client () =
 	main_client (parent_fun Lwt_io.stdout) (child_fun Lwt_io.stdin) ;
 	Lwt_io.close Lwt_io.stdin |> Lwt_main.run
 
-
-
 let _ = go_client ()
