@@ -166,6 +166,6 @@ module MakeInterface (Quester : Api.Requester) = struct
 
 end
 
-module Dummyquester = MakeRequester(Dummy_client)
+module Dummyquester = MakeRequester(Chat_client_test)
 module DummyInterface = MakeInterface(Dummyquester)
 let _ = DummyInterface.run ()

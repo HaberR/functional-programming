@@ -14,9 +14,11 @@ exception ClientError
 
 module type Client = sig
 
-  val init : unit -> unit
+  (*val init : unit -> unit*)
 
-  val send_req : request -> response Lwt.t
+  val init : string -> int -> (request -> response Lwt.t)
+
+  (*val send_req : request -> response Lwt.t*)
 
 end
 
@@ -45,6 +47,8 @@ module type RequesterMaker =
 
 module MakeRequester (Cl : Client) = struct
 
+  let send_req = Cl.init "localhost" 3110
+
   (* A wrapper for response handling that raises a useless
    * error if the request was unsuccessful *)
   let handle_response f (cont, succ) =
@@ -53,35 +57,35 @@ module MakeRequester (Cl : Client) = struct
 
   let login identifier =
     let req = Login identifier in
-    Cl.send_req req >|= snd
+    send_req req >|= snd
 
   let see_chatrooms identifier =
     let req = Listrooms identifier in
     let f = function
       | Chatrooms clst -> clst | _ -> raise ClientError in
-    Cl.send_req req >|= (handle_response f)
+    send_req req >|= (handle_response f)
 
   let see_users () =
     let f = function
       | Users lst -> lst | _ -> raise ClientError in
-    Cl.send_req Listusers >|= (handle_response f)
+    send_req Listusers >|= (handle_response f)
  
   let get_room identifier crname =
     let req = Getroom (identifier, crname) in
     let f = function
       | Chatroom cr -> cr | _ -> raise ClientError in
-    Cl.send_req req >|= (handle_response f)
+    send_req req >|= (handle_response f)
    
   let see_messsages identifier crname = (* () -> msg list*)
     let f = function
       | Messages lst -> lst | _ -> raise ClientError in
     get_room identifier crname >>= fun cr ->
-    Cl.send_req (Listmessages (identifier, cr)) >|= 
+    send_req (Listmessages (identifier, cr)) >|= 
     (handle_response f)
 
   let block_user identifier target = (*id -> success*)
     let req = Block (identifier, target) in
-    Cl.send_req req >|= snd
+    send_req req >|= snd
 
   let send_message identifier content crname = (*string -> success*)
     get_room identifier crname >>= fun cr ->
@@ -91,14 +95,14 @@ module MakeRequester (Cl : Client) = struct
       message = content;
       timestamp = Unix.time ();
     } in
-    Cl.send_req req >|= snd
+    send_req req >|= snd
 
   let new_room members crname =
     let req = Newroom {
       name = crname;
       participants = members;
     } in
-    Cl.send_req req >|= snd
+    send_req req >|= snd
 
 end
 

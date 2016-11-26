@@ -2,8 +2,9 @@ open Type_info
 open Unix
 open Lwt
 
-type t = (Lwt_io.input_channel * Lwt_io.output_channel) Lwt.t
-
+(* [get_requester server port] takes a string [server] and
+ * an integer [port] and produces a function request -> response Lwt.t
+ * which may be used to send requests to the server at port [port] *)
 let init server port =
   (*if Array.length Sys.argv < 3
   then Printf.printf "usage : client server port\n"
@@ -16,22 +17,30 @@ let init server port =
         Printf.eprintf "%s : unknown server\n" server ;
         exit 2
   in try
-    let port = int_of_string port in
+    (*let port = int_of_string port in*)
     let sockaddr = Unix.ADDR_INET(server_addr, port) in
     (* oc = output channel of server.
      * ic = input channel of client *)
-    Lwt_io.open_connection sockaddr
+    (Lwt_io.open_connection sockaddr >|= fun (ic, oc) -> 
+      (fun req ->
+        let req' = req |> req_to_string in
+        Lwt_io.write_line oc (req' ^ "\n") >>= fun () ->
+        Lwt_io.flush oc >>= fun () ->
+        print_string ("wrote: " ^ req');
+        Lwt_io.read_line ic >|= resp_from_string)) |> Lwt_main.run
     (*match Lwt_unix.fork () with 
     | 0 -> client_child_fun oc ; exit 0
     | id -> client_parent_fun ic ; Lwt_io.close ic |> Lwt_main.run ; ignore (Unix.waitpid [] id)*)
   with 
     Failure("int_of_string") -> Printf.eprintf "bad port number" ; exit 2
 
+(*
 let send_req (ic, oc) req =
   Lwt_io.write_line oc (req ^ "\n") >>= fun () ->
   Lwt_io.flush oc >>= fun () ->
   print_string ("wrote: " ^ req);
   Lwt_io.read_line ic 
+  *)
 
 
   (*
