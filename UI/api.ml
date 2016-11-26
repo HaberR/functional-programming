@@ -48,7 +48,7 @@ module MakeRequester (Cl : Client) = struct
   (* A wrapper for response handling that raises a useless
    * error if the request was unsuccessful *)
   let handle_response f (cont, succ) =
-    if succ then f cont
+    if succ=Success then f cont
     else raise ServerError
 
   let login identifier =
@@ -76,7 +76,7 @@ module MakeRequester (Cl : Client) = struct
     let f = function
       | Messages lst -> lst | _ -> raise ClientError in
     get_room identifier crname >>= fun cr ->
-    Cl.send_req (Listmessages cr) >|= 
+    Cl.send_req (Listmessages (identifier, cr)) >|= 
     (handle_response f)
 
   let block_user identifier target = (*id -> success*)

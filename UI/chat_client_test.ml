@@ -28,7 +28,8 @@ let init server port =
     Failure("int_of_string") -> Printf.eprintf "bad port number" ; exit 2
 
 let send_req (ic, oc) req =
-  Lwt_io.write_line oc req >>= fun () ->
+  Lwt_io.write_line oc (req ^ "\n") >>= fun () ->
+  Lwt_io.flush oc >>= fun () ->
   print_string ("wrote: " ^ req);
   Lwt_io.read_line ic 
 

@@ -20,4 +20,4 @@ let send_req req =
       message = "hi";
       timestamp = 1.24939
     }]
-  | Getroom _ -> Chatroom { name = "chat room"; participants = ["default 2"]}), true)
+  | Getroom _ -> Chatroom { name = "chat room"; participants = ["default 2"]}), Success)

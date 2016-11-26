@@ -44,7 +44,7 @@ module MakeInterface (Quester : Api.Requester) = struct
 
   let log_on identifier = 
     Quester.login identifier >|= fun succ ->
-      (if succ then
+      (if succ=Success then
         current_state := {
         mode = General;
         info = { username = identifier };
@@ -52,111 +52,46 @@ module MakeInterface (Quester : Api.Requester) = struct
         }); succ
   (************ end init stuff ***********************)
 
-  (***************************************************)
-  (*********** FORMATTING AND PRINTING ***************)
-  (***************************************************)
-
-  (*                                                    *)
-  (*                    HEADER                          *)
-  (*                                                 .2 *)
-  (*                                                    *)
-  (*                  DISPLAY                           *)
-  (*                                                    *)
-  (*                                                    *)
-  (*                  DISPLAY                        .6 *)
-  (*                   EMPTY                            *)
-  (*                   EMPTY                            *)
-  (*>> command hist                                  .7 *)
-  (*>> command hist                                     *)
-  (*>> command                                       .9 *)
-  (*                                                    *)
-
-  (* used to generate map_alpha below *)
-  let map f = 
-    let sz = T.size() |> f |> float_of_int in
-    fun flt -> sz *. flt |> int_of_float
-
-
- (*map_alpha flt is the coordinate cooresponding
-  * to flt percetn of the way down the screen in
-  * the alpha direction *)
-
-  let map_x = map fst
-
-  let map_y = map snd
-
-  let disp_top = map_y 0.2
-  let disp_bot = map_y 0.7
-
-
-  (* The history of inputs *)
-  let add_to_hist =
-    let hist = ref [] in
-    fun input -> hist := input :: !hist
-
-  (* Creates a new line prompt. Needs to
-   * be updated to use the prompt hist and
-   * erase *)
-  let new_line () = 
-    (*T.scroll 1;*)
+  let command_prompt () =
+    T.move_cursor 0 1;
+    T.scroll 1;
     T.move_bol();
     T.print_string [Foreground T.Blue] ">> "
-
-  let incr_crsr offset =
-    T.move_cursor 0 1;
-    T.move_bol ();
-    T.move_cursor offset 0
 
   (* Displays the prompt for login *)
   let login_prompt () = 
     T.move_bol();
     T.print_string [Foreground T.Green] "id: "
 
-  (* Clears the region titled display.
-   * Will mess with cursor position*)
-  let clear_display () = 
-      let rec clearlns from last =
-        T.set_cursor 1 from;
-        T.erase T.Eol;
-        incr_crsr 0;
-        if from <> last then clearlns (from + 1) last in
-      clearlns disp_top disp_bot
+  let print_in_place lst txt =
+    let x, y = T.pos_cursor () in
+    T.print_string lst txt;
+    T.set_cursor x y
 
-  let display_content display content =
+  (*let display_content display content =
     let (x, y) = T.pos_cursor() in
     clear_display ();
     T.set_cursor 1 disp_top;
     display content;
-    T.set_cursor x y
-
-  let print_in_place style_lst str =
-    let x, y = T.pos_cursor () in
-    T.print_string style_lst str;
-    T.set_cursor x y 
+    T.set_cursor x y*)
 
   let display_list title prnt lst =
     print_in_place [] title;
     T.move_cursor 5 0;
     let rec print_seq = function
       | h :: t -> 
-          T.move_cursor 0 1;
+          (*T.move_cursor 0 1;*)
+          T.scroll 1;
           prnt h; 
           print_seq t
       | [] -> () in
     print_seq lst
 
-  let setup_screen () =
-    T.erase T.Screen;
-    T.set_cursor (map_x 0.5) (map_y 0.1);
-    T.print_string [Foreground T.Red] "Messenger";
-    T.set_cursor 2 (map_y 0.9)
-
-
   let handle_ls_users () =
     Quester.see_users () >>= fun ulst -> 
     let disp = 
       display_list "Users registered:" (print_in_place []) in
-    ulst |> display_content disp |> return
+    ulst |> disp |> return
 
   (* I actually need to have that type annotation there
    * to get this thing to compile... Not a great sign *)
@@ -166,22 +101,22 @@ module MakeInterface (Quester : Api.Requester) = struct
       display_list nm (print_in_place []) mems in
     let disp_all lst =
       display_list "Chatrooms:" disp_rm lst in
-    clst |> display_content disp_all |> return
+    clst |> disp_all |> return
 
   let refresh_messages () =
     failwith "unimplimented"
 
-  let handle_open crname = 
+  (*let handle_open crname = 
     let uid = !current_state.info.username in
     Quester.get_room uid crname >>= fun croom ->
     current_state := {
       mode = Inchat {
         hist = []
         cr = croom
-      }
-      info = {username = uid}
+      };
+      info = {username = uid};
       status = []
-    } (* TODO make refresh messages start *)
+    }  TODO make refresh messages start *)
 
 
   (************ End Formatting and printing **********)
@@ -196,8 +131,8 @@ module MakeInterface (Quester : Api.Requester) = struct
       Str.string_match re' s 0 in
     if      "^ls users" |> sm then handle_ls_users ()
     else if "^ls rooms" |> sm then handle_ls_rooms ()
-    else if "^open \\(.*\\)" |> sm then 
-    (*| "open" |> sm -> handle_open ()*)
+    (*else if "^open \\(.*\\)" |> sm then 
+    | "open" |> sm -> handle_open ()*)
     else 
         (print_string s;
         failwith "unimplemented")
@@ -206,7 +141,6 @@ module MakeInterface (Quester : Api.Requester) = struct
     failwith "unimplemented"
 
   let process_input input = 
-    add_to_hist input;
     match !current_state.mode with
     | Inchat _ -> process_msg input
     | General -> process_command input
@@ -219,16 +153,15 @@ module MakeInterface (Quester : Api.Requester) = struct
     else process_msg input*)
 
   let rec repl () = 
-    new_line ();
+    command_prompt ();
     let input = read_line () in
     process_input input >>= repl
 
   let rec run () =
-    setup_screen();
-    login_prompt(); new_line();
+    login_prompt(); command_prompt ();
     let input = read_line () in
     log_on input >>= fun succ ->
-      if succ then repl ()
+      if succ=Success then repl ()
       else run ()
 
 end

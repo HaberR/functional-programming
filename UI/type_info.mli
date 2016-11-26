@@ -28,7 +28,7 @@ type get_msgs =
   }*)
 
 (* indicates whether a request was successful *)
-type success = bool
+type success = Success | Fail of string
 
 (* [resp_header] contains the meta information
  * indicating what type of a response this is.
@@ -42,7 +42,7 @@ type request =
   | Login of id
   | Block of id * id
   | Listrooms of id
-  | Listmessages of chatroom
+  | Listmessages of id * chatroom
   | Newroom of chatroom
   | Getroom of id * string
   | Listusers [@@deriving sexp]

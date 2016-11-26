@@ -1,0 +1,11 @@
+(Login Rafe)
+(Login Jim)
+Listusers
+(Newroom((name the_room)(participants(Jim Rafe))))
+(Listrooms Jim) #should give created room
+(Login Bob)
+(Listrooms Bob) #should have nothing
+(Newroom((name the_room)(participants(Bob)))) #should fail because same name
+(Message((user Jim)(room((name the_room)(participants(Jim Rafe))))(message\\"hey dude\\")(timestamp 1480141836)))
+(Message((user Jim)(room((name the_room)(participants(Jim Rafe))))(message\"hey dude\")(timestamp 1480141836)))
+(Message((user Bob)(room((name the_room)(participants(Jim Rafe))))(message\"hey dude\")(timestamp 1480141836)))  #should fail

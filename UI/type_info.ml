@@ -16,7 +16,7 @@ type msg =
     timestamp : float
   } [@@deriving sexp]
 
-type success = bool [@@deriving sexp]
+type success = Success | Fail of string [@@deriving sexp]
 
 (*
 type req_header = 
@@ -34,7 +34,7 @@ type request =
   | Login of id
   | Block of id * id
   | Listrooms of id
-  | Listmessages of chatroom
+  | Listmessages of id * chatroom
   | Newroom of chatroom 
   | Getroom of id * string
   | Listusers [@@deriving sexp]
@@ -60,5 +60,4 @@ let resp_to_string resp =
 
 let resp_from_string s =
   s |> Sexp.of_string |> response_of_sexp
-
 
