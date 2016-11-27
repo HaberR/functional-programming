@@ -26,7 +26,7 @@ module type Requester = sig
 
   val login : id -> success Lwt.t
 
-  val see_chatrooms : id -> chatroom list Lwt.t
+  val see_chatrooms : id -> Type_info.chatroom list Lwt.t
 
   val see_users : unit -> id list Lwt.t
 
@@ -36,7 +36,7 @@ module type Requester = sig
 
   val send_message : id -> string -> string -> success Lwt.t
 
-  val get_room : id -> string -> chatroom Lwt.t
+  val get_room : id -> string -> (Type_info.chatroom * success) Lwt.t
 
   val new_room : id list -> string -> success Lwt.t
 end
@@ -74,12 +74,13 @@ module MakeRequester (Cl : Client) = struct
     let req = Getroom (identifier, crname) in
     let f = function
       | Chatroom cr -> cr | _ -> raise ClientError in
-    send_req req >|= (handle_response f)
+    send_req req >|= fun (r, succ) ->
+    (f r, succ)
    
   let see_messsages identifier crname = (* () -> msg list*)
     let f = function
       | Messages lst -> lst | _ -> raise ClientError in
-    get_room identifier crname >>= fun cr ->
+    get_room identifier crname >>= fun (cr, _) ->
     send_req (Listmessages (identifier, cr)) >|= 
     (handle_response f)
 
@@ -88,7 +89,7 @@ module MakeRequester (Cl : Client) = struct
     send_req req >|= snd
 
   let send_message identifier content crname = (*string -> success*)
-    get_room identifier crname >>= fun cr ->
+    get_room identifier crname >>= fun (cr, _) ->
     let req = Message {
       user = identifier;
       room = cr;

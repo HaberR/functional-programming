@@ -24,9 +24,8 @@ let init server port =
     (Lwt_io.open_connection sockaddr >|= fun (ic, oc) -> 
       (fun req ->
         let req' = req |> req_to_string in
-        Lwt_io.write_line oc (req' ^ "\n") >>= fun () ->
+        Lwt_io.write_line oc req' >>= fun () ->
         Lwt_io.flush oc >>= fun () ->
-        print_string ("wrote: " ^ req');
         Lwt_io.read_line ic >|= resp_from_string)) |> Lwt_main.run
     (*match Lwt_unix.fork () with 
     | 0 -> client_child_fun oc ; exit 0

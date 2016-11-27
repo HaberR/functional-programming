@@ -23,7 +23,7 @@ module type Requester = sig
 
   val login : id -> success Lwt.t
 
-  val see_chatrooms : id -> chatroom list Lwt.t
+  val see_chatrooms : id -> Type_info.chatroom list Lwt.t
 
   val see_users : unit -> id list Lwt.t
 
@@ -33,7 +33,7 @@ module type Requester = sig
 
   val send_message : id -> string -> string -> success Lwt.t
 
-  val get_room : id -> string -> chatroom Lwt.t
+  val get_room : id -> string -> (Type_info.chatroom * success) Lwt.t
 
   val new_room : id list -> string -> success Lwt.t
 end

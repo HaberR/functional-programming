@@ -11,7 +11,7 @@ module MakeInterface (Quester : Api.Requester) = struct
 
   (********** Reiterating a bunch of type info ******)
   type chat = {
-    cr : chatroom;
+    cr : Type_info.chatroom;
     hist : msg list;
   }
 
@@ -52,56 +52,74 @@ module MakeInterface (Quester : Api.Requester) = struct
         }); succ
   (************ end init stuff ***********************)
 
+  let lread () =
+    Lwt_io.read_line Lwt_io.stdin
+
+  let lprint s =
+    Lwt_io.write Lwt_io.stdout s 
+
   let command_prompt () =
-    T.move_cursor 0 1;
-    T.scroll 1;
-    T.move_bol();
-    T.print_string [Foreground T.Blue] ">> "
+    lprint "\n>> "
 
   (* Displays the prompt for login *)
   let login_prompt () = 
-    T.move_bol();
-    T.print_string [Foreground T.Green] "id: "
+    lprint "id: "
 
   let print_in_place lst txt =
     let x, y = T.pos_cursor () in
     T.print_string lst txt;
     T.set_cursor x y
 
-  (*let display_content display content =
-    let (x, y) = T.pos_cursor() in
-    clear_display ();
-    T.set_cursor 1 disp_top;
-    display content;
-    T.set_cursor x y*)
-
   let display_list title prnt lst =
-    print_in_place [] title;
-    T.move_cursor 5 0;
+    lprint title >>= fun _ ->
     let rec print_seq = function
-      | h :: t -> 
-          (*T.move_cursor 0 1;*)
-          T.scroll 1;
-          prnt h; 
+      | h :: t -> lprint "\n\t" >>= fun _ ->
+          prnt h >>= fun _ ->
           print_seq t
-      | [] -> () in
+      | [] -> () |> return in
     print_seq lst
+
+  let handle_new_room () =
+    lprint "room name: " >>= command_prompt >>=
+    lread >>= fun rmname ->
+    lprint "participant list: " >>= command_prompt >>=
+    lread >>= fun plst ->
+    let lst = plst |> Str.split (Str.regexp " ") in
+    Quester.new_room lst rmname >>= function
+    | Success -> return ()
+    | Fail s -> lprint s
+    
 
   let handle_ls_users () =
     Quester.see_users () >>= fun ulst -> 
     let disp = 
-      display_list "Users registered:" (print_in_place []) in
-    ulst |> disp |> return
+      display_list "Users registered:" lprint in
+    ulst |> disp 
 
   (* I actually need to have that type annotation there
    * to get this thing to compile... Not a great sign *)
   let handle_ls_rooms () =
     Quester.see_chatrooms !current_state.info.username >>= fun clst ->
     let disp_rm ({name = nm; participants = mems} : Type_info.chatroom) = 
-      display_list nm (print_in_place []) mems in
+      display_list nm lprint mems in
     let disp_all lst =
       display_list "Chatrooms:" disp_rm lst in
-    clst |> disp_all |> return
+    clst |> disp_all 
+
+  let handle_enter_room s =
+    let nm = Str.matched_group 1 s in
+    let uid = !current_state.info.username in
+    Quester.get_room uid nm >>= fun ((crm : Type_info.chatroom), succ) ->
+    match succ with
+    | Success -> current_state := {
+      mode = Inchat {
+        hist = [];
+        cr = crm
+      };
+      info = {username = uid};
+      status = !current_state.status
+    }; lprint ("entered " ^ crm.name)
+    | Fail s -> lprint s
 
   let refresh_messages () =
     failwith "unimplimented"
@@ -131,6 +149,8 @@ module MakeInterface (Quester : Api.Requester) = struct
       Str.string_match re' s 0 in
     if      "^ls users" |> sm then handle_ls_users ()
     else if "^ls rooms" |> sm then handle_ls_rooms ()
+    else if "^new room" |> sm then handle_new_room ()
+    else if "^enter \\(.*\\)" |> sm then handle_enter_room s
     (*else if "^open \\(.*\\)" |> sm then 
     | "open" |> sm -> handle_open ()*)
     else 
@@ -153,19 +173,22 @@ module MakeInterface (Quester : Api.Requester) = struct
     else process_msg input*)
 
   let rec repl () = 
-    command_prompt ();
-    let input = read_line () in
-    process_input input >>= repl
+    command_prompt () >>= fun _ ->
+    Lwt_io.read_line Lwt_io.stdin >>=
+    process_input >>= repl
 
   let rec run () =
-    login_prompt(); command_prompt ();
-    let input = read_line () in
-    log_on input >>= fun succ ->
+    login_prompt() >>=
+    command_prompt >>= fun _ ->
+    Lwt_io.read_line Lwt_io.stdin >>=
+    log_on >>= fun succ ->
       if succ=Success then repl ()
       else run ()
+
+  let _ = run () |> Lwt_main.run
 
 end
 
 module Dummyquester = MakeRequester(Chat_client_test)
 module DummyInterface = MakeInterface(Dummyquester)
-let _ = DummyInterface.run ()
+(*let _ = DummyInterface.run ()*)
