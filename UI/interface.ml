@@ -193,8 +193,9 @@ module MakeInterface (Quester : Api.Requester) = struct
 
   let handle_send_message {cr = c; last = _} s = 
     let uid = !current_state.info.username in
-    Quester.send_message uid c s >>= function
-    | Success -> set_chat {last = Some s; c}; return ()
+    Quester.send_message uid c s >>= fun (msg, succ) ->
+    match succ with
+    | Success -> set_chat {last = Some msg; cr = c}; return ()
     | Fail b -> lprint b
 
 

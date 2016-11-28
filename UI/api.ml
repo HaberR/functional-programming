@@ -34,7 +34,7 @@ module type Requester = sig
 
   val block_user : id -> id -> success Lwt.t
 
-  val send_message : id -> Type_info.chatroom -> string -> success Lwt.t
+  val send_message : id -> Type_info.chatroom -> string -> (Type_info.msg * success) Lwt.t
 
   val get_room : id -> string -> (Type_info.chatroom * success) Lwt.t
 
@@ -88,13 +88,15 @@ module MakeRequester (Cl : Client) = struct
     send_req req >|= snd
 
   let send_message identifier cr content = (*string -> success*)
-    let req = Message {
+    let cont = {
       user = identifier;
       room = cr;
       message = content;
       timestamp = Unix.time ();
     } in
-    send_req req >|= snd
+    let req = Message cont in
+    send_req req >|= fun resp ->
+    (cont, snd resp)
 
   let new_room members crname =
     let req = Newroom {
