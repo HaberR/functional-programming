@@ -12,7 +12,7 @@ module MakeInterface (Quester : Api.Requester) = struct
   (********** Reiterating a bunch of type info ******)
   type chat = {
     cr : Type_info.chatroom;
-    hist : msg list;
+    hist : Type_info.msg list;
   }
 
   type information = {
@@ -60,6 +60,9 @@ module MakeInterface (Quester : Api.Requester) = struct
 
   let command_prompt () =
     lprint "\n>> "
+
+  let message_prompt () =
+    lprint "\n"
 
   (* Displays the prompt for login *)
   let login_prompt () = 
@@ -121,8 +124,27 @@ module MakeInterface (Quester : Api.Requester) = struct
     }; lprint ("entered " ^ crm.name)
     | Fail s -> lprint s
 
-  let refresh_messages () =
-    failwith "unimplimented"
+  let handle_exit_room () = 
+    let uid = !current_state.info.username in
+    (current_state := {
+      mode = General;
+      info = {username = uid};
+      status = !current_state.status
+    }) |> return
+
+  let print_message usr msg = 
+    (let uid = !current_state.info.username in
+    if usr <> uid then lprint (usr ^ ": ")
+    else return ()) >>= fun _ ->
+    lprint msg
+
+
+  let refresh_messages {cr = c; hist = h} =
+    let uid = !current_state.info.username in
+    Quester.see_messages uid c >>= fun mlist ->
+    let p (m: Type_info.msg) = print_message m.user m.message in
+    mlist |> display_list "messages" p
+
 
   (*let handle_open crname = 
     let uid = !current_state.info.username in
@@ -136,6 +158,12 @@ module MakeInterface (Quester : Api.Requester) = struct
       status = []
     }  TODO make refresh messages start *)
 
+  let handle_send_message {cr = c; hist = h} s = 
+    let uid = !current_state.info.username in
+    Quester.send_message uid c s >>= function
+    | Success -> return ()
+    | Fail b -> lprint b
+
 
   (************ End Formatting and printing **********)
 
@@ -143,7 +171,8 @@ module MakeInterface (Quester : Api.Requester) = struct
 
 
 
-  let process_command s =
+  let process_command () =
+    command_prompt () >>= lread >>= fun s ->
     let sm re = 
       let re' = Str.regexp re in
       Str.string_match re' s 0 in
@@ -157,13 +186,17 @@ module MakeInterface (Quester : Api.Requester) = struct
         (print_string s;
         failwith "unimplemented")
 
-  let process_msg input =
-    failwith "unimplemented"
+  let process_msg cht =
+    message_prompt () >>= lread >>= function
+    | "\\exit" -> handle_exit_room ()
+    | "\\r" -> refresh_messages cht
+    | s -> handle_send_message cht s
 
-  let process_input input = 
+
+  let process_input () = 
     match !current_state.mode with
-    | Inchat _ -> process_msg input
-    | General -> process_command input
+    | Inchat cht -> process_msg cht
+    | General -> process_command ()
     (*let cmd_re = Str.regexp "\\(^\\\\[a-zA-Z]+\\).*" in
     if Str.string_match cmd_re input 0 then
       let delim = Str.group_end 1 in
@@ -173,9 +206,9 @@ module MakeInterface (Quester : Api.Requester) = struct
     else process_msg input*)
 
   let rec repl () = 
-    command_prompt () >>= fun _ ->
-    Lwt_io.read_line Lwt_io.stdin >>=
-    process_input >>= repl
+    (*command_prompt () >>= fun _ ->
+    Lwt_io.read_line Lwt_io.stdin >>=*)
+    process_input () >>= repl
 
   let rec run () =
     login_prompt() >>=

@@ -85,14 +85,15 @@ let handle_block u t =
  * specified in [msg] provided that the sender id
  * has access to the room and the room exists. *)
 let post_message msg = 
-  if Hashtbl.mem clients msg.room.name then
-    let (rm, msgs) = Hashtbl.find rooms msg.room.name in
+  let rmname = msg.room.name in
+  if Hashtbl.mem rooms rmname then
+    let (rm, msgs) = Hashtbl.find rooms rmname in
     if rm.participants |> (List.mem msg.user) then
       let msgs' = msg :: msgs in
       Hashtbl.replace rooms rm.name (rm, msgs');
       (Nothing, Success)
     else (Nothing, Fail "You don't have access to that room")
-  else (Nothing, Fail "No such room exists")
+  else (Nothing, Fail ("No such room exists: " ^ rmname))
 
 (* [post_room cr] creates a new chat room provided
  * that the chat room name does not exist already

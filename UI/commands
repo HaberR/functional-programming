@@ -9,3 +9,5 @@ Listusers
 (Message((user Jim)(room((name the_room)(participants(Jim Rafe))))(message\\"hey dude\\")(timestamp 1480141836)))
 (Message((user Jim)(room((name the_room)(participants(Jim Rafe))))(message\"hey dude\")(timestamp 1480141836)))
 (Message((user Bob)(room((name the_room)(participants(Jim Rafe))))(message\"hey dude\")(timestamp 1480141836)))  #should fail
+
+(Message((user Jim)(room((name mine)(participants(Jim))))(message\"hey dude\")(timestamp 1480141836)))
