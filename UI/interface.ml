@@ -12,7 +12,7 @@ module MakeInterface (Quester : Api.Requester) = struct
   (********** Reiterating a bunch of type info ******)
   type chat = {
     cr : Type_info.chatroom;
-    hist : Type_info.msg list;
+    last : Type_info.msg option;
   }
 
   type information = {
@@ -50,6 +50,13 @@ module MakeInterface (Quester : Api.Requester) = struct
         info = { username = identifier };
         status = []
         }); succ
+
+  let set_chat cr_and_last = 
+    current_state := {
+      mode = Inchat cr_and_last;
+      info = !current_state.info;
+      status = !current_state.status;
+    }
   (************ end init stuff ***********************)
 
   let lread () =
@@ -73,15 +80,23 @@ module MakeInterface (Quester : Api.Requester) = struct
     T.print_string lst txt;
     T.set_cursor x y
 
-  let display_list title prnt lst =
-    lprint title >>= fun _ ->
+  (* Displays an arbitrary list with an arbitrary
+   * print function. No requirement on type of
+   * list element *)
+  let display_list prnt lst =
     let rec print_seq = function
-      | h :: t -> lprint "\n\t" >>= fun _ ->
-          prnt h >>= fun _ ->
-          print_seq t
+      | h :: t -> lprint "\n" >>= fun _ ->
+          prnt h >>= fun _ -> print_seq t
       | [] -> () |> return in
     print_seq lst
 
+  (* Displays a list with a title. Requires
+   * that list elements be strings *)
+  let display_title_list title lst =
+    lprint title >>= fun _ ->
+    let lst' = lst |> List.map ((^) "\t") in
+    display_list lprint lst'
+  
   let handle_new_room () =
     lprint "room name: " >>= command_prompt >>=
     lread >>= fun rmname ->
@@ -95,8 +110,7 @@ module MakeInterface (Quester : Api.Requester) = struct
 
   let handle_ls_users () =
     Quester.see_users () >>= fun ulst -> 
-    let disp = 
-      display_list "Users registered:" lprint in
+    let disp = display_list lprint in
     ulst |> disp 
 
   (* I actually need to have that type annotation there
@@ -104,9 +118,9 @@ module MakeInterface (Quester : Api.Requester) = struct
   let handle_ls_rooms () =
     Quester.see_chatrooms !current_state.info.username >>= fun clst ->
     let disp_rm ({name = nm; participants = mems} : Type_info.chatroom) = 
-      display_list nm lprint mems in
+      display_title_list nm mems in
     let disp_all lst =
-      display_list "Chatrooms:" disp_rm lst in
+      display_list disp_rm lst in
     clst |> disp_all 
 
   let handle_enter_room s =
@@ -116,7 +130,7 @@ module MakeInterface (Quester : Api.Requester) = struct
     match succ with
     | Success -> current_state := {
       mode = Inchat {
-        hist = [];
+        last = None;
         cr = crm
       };
       info = {username = uid};
@@ -139,11 +153,30 @@ module MakeInterface (Quester : Api.Requester) = struct
     lprint msg
 
 
-  let refresh_messages {cr = c; hist = h} =
+  (*returns the reversed list of all messages
+   * more recent than m in mlst. Requires
+   * that mlst be sorted such that most recent
+   * messages are first *)
+  let shorten_messages m mlst =
+    let rec get_lst lst acc m =
+      match lst with
+      | h :: t -> 
+          if h = m then acc 
+          else get_lst t (h :: acc) m
+      | [] -> [] in
+    match m,mlst with
+    | (None, h::t) -> (Some h, List.rev mlst)
+    | (Some x, h::t) -> (Some h, get_lst mlst [] x)
+    | a -> a
+
+  let refresh_messages {cr = c; last = m} =
     let uid = !current_state.info.username in
     Quester.see_messages uid c >>= fun mlist ->
-    let p (m: Type_info.msg) = print_message m.user m.message in
-    mlist |> display_list "messages" p
+    let (m', mlist') = shorten_messages m mlist in
+    let p (cont: Type_info.msg) = 
+      print_message cont.user cont.message in
+    set_chat {last = m'; cr = c};
+    mlist' |> display_list p
 
 
   (*let handle_open crname = 
@@ -158,10 +191,10 @@ module MakeInterface (Quester : Api.Requester) = struct
       status = []
     }  TODO make refresh messages start *)
 
-  let handle_send_message {cr = c; hist = h} s = 
+  let handle_send_message {cr = c; last = _} s = 
     let uid = !current_state.info.username in
     Quester.send_message uid c s >>= function
-    | Success -> return ()
+    | Success -> set_chat {last = Some s; c}; return ()
     | Fail b -> lprint b
 
 
