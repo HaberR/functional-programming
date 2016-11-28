@@ -123,21 +123,7 @@ module MakeInterface (Quester : Api.Requester) = struct
       display_list disp_rm lst in
     clst |> disp_all 
 
-  let handle_enter_room s =
-    let nm = Str.matched_group 1 s in
-    let uid = !current_state.info.username in
-    Quester.get_room uid nm >>= fun ((crm : Type_info.chatroom), succ) ->
-    match succ with
-    | Success -> current_state := {
-      mode = Inchat {
-        last = None;
-        cr = crm
-      };
-      info = {username = uid};
-      status = !current_state.status
-    }; lprint ("entered " ^ crm.name)
-    | Fail s -> lprint s
-
+  
   let handle_exit_room () = 
     let uid = !current_state.info.username in
     (current_state := {
@@ -151,7 +137,6 @@ module MakeInterface (Quester : Api.Requester) = struct
     if usr <> uid then lprint (usr ^ ": ")
     else return ()) >>= fun _ ->
     lprint msg
-
 
   (*returns the reversed list of all messages
    * more recent than m in mlst. Requires
@@ -178,19 +163,6 @@ module MakeInterface (Quester : Api.Requester) = struct
     set_chat {last = m'; cr = c};
     mlist' |> display_list p
 
-
-  (*let handle_open crname = 
-    let uid = !current_state.info.username in
-    Quester.get_room uid crname >>= fun croom ->
-    current_state := {
-      mode = Inchat {
-        hist = []
-        cr = croom
-      };
-      info = {username = uid};
-      status = []
-    }  TODO make refresh messages start *)
-
   let handle_send_message {cr = c; last = _} s = 
     let uid = !current_state.info.username in
     Quester.send_message uid c s >>= fun (msg, succ) ->
@@ -198,6 +170,30 @@ module MakeInterface (Quester : Api.Requester) = struct
     | Success -> set_chat {last = Some msg; cr = c}; return ()
     | Fail b -> lprint b
 
+  let fork_refresh () =
+    match Lwt_unix.fork () with
+    | 0 -> 
+        (let rec loop () =
+          match !current_state.mode with
+          | Inchat x -> refresh_messages x >>= loop
+          | General -> exit 0 in
+        loop ()) |> Lwt_main.run
+    | id -> return ()
+
+  let handle_enter_room s =
+    let nm = Str.matched_group 1 s in
+    let uid = !current_state.info.username in
+    Quester.get_room uid nm >>= fun ((crm : Type_info.chatroom), succ) ->
+    match succ with
+    | Success -> current_state := {
+      mode = Inchat {
+        last = None;
+        cr = crm
+      };
+      info = {username = uid};
+      status = !current_state.status
+    }; lprint ("entered " ^ crm.name) >>= fork_refresh
+    | Fail s -> lprint s
 
   (************ End Formatting and printing **********)
 
@@ -258,4 +254,3 @@ end
 
 module Dummyquester = MakeRequester(Chat_client_test)
 module DummyInterface = MakeInterface(Dummyquester)
-(*let _ = DummyInterface.run ()*)
