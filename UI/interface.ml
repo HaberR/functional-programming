@@ -170,12 +170,17 @@ module MakeInterface (Quester : Api.Requester) = struct
     | Success -> set_chat {last = Some msg; cr = c}; return ()
     | Fail b -> lprint b
 
+  let mut = Lwt_mutex.create()
+
   let fork_refresh () =
     match Lwt_unix.fork () with
     | 0 -> 
         (let rec loop () =
           match !current_state.mode with
-          | Inchat x -> refresh_messages x >>= loop
+          | Inchat x -> 
+              Lwt_mutex.lock mut >>= fun () ->
+              refresh_messages x >>= fun () ->
+              Lwt_mutex.unlock mut |> return >>= loop
           | General -> exit 0 in
         loop ()) |> Lwt_main.run
     | id -> return ()
@@ -217,10 +222,12 @@ module MakeInterface (Quester : Api.Requester) = struct
         failwith "unimplemented")
 
   let process_msg cht =
-    message_prompt () >>= lread >>= function
+    Lwt_mutex.lock mut >>= fun _ ->
+    (message_prompt () >>= lread >>= function
     | "\\exit" -> handle_exit_room ()
     | "\\r" -> refresh_messages cht
-    | s -> handle_send_message cht s
+    | s -> handle_send_message cht s) >>= fun _ ->
+    Lwt_mutex.unlock mut |> return
 
 
   let process_input () = 
