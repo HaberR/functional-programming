@@ -185,6 +185,8 @@ module MakeInterface (Quester : Api.Requester) = struct
     | Success -> set_chat {last = Some msg; cr = c}; return ()
     | Fail b -> lprint b
 
+  let mut = Lwt_mutex.create()
+
   let fork_refresh () =
     (*match Lwt_unix.fork () with
     | 0 -> 
