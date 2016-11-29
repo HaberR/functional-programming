@@ -172,14 +172,21 @@ module MakeInterface (Quester : Api.Requester) = struct
     | Fail b -> lprint b
 
   let fork_refresh () =
-    match Lwt_unix.fork () with
+    (*match Lwt_unix.fork () with
     | 0 -> 
         (let rec loop () =
           match !current_state.mode with
           | Inchat x -> refresh_messages x >>= loop
           | General -> lprint "done" >>= fun _ -> exit 0 in
         loop ())
-    | id -> return ()
+    | id -> return ()*)
+    Lwt.async (fun () ->
+      let rec loop () =
+        match !current_state.mode with
+        | Inchat x -> refresh_messages x >>= loop
+        | General -> lprint "done" in
+      loop ()
+    ); return ()
 
   let handle_enter_room s =
     let nm = Str.matched_group 1 s in
