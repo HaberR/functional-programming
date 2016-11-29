@@ -85,8 +85,8 @@ module MakeInterface (Quester : Api.Requester) = struct
    * list element *)
   let display_list prnt lst =
     let rec print_seq = function
-      | h :: t -> lprint "\n" >>= fun _ ->
-          prnt h >>= fun _ -> print_seq t
+      | h :: t -> prnt h >>= fun _ ->
+          lprint "\n" >>= fun _ -> print_seq t
       | [] -> () |> return in
     print_seq lst
 
@@ -154,15 +154,29 @@ module MakeInterface (Quester : Api.Requester) = struct
     | (Some x, h::t) -> (Some h, get_lst mlst [] x)
     | a -> a
 
+  (* [check_response_validity mlist] takes in a
+   * message list and makes sure that the most recent
+   * message is not included in the list. If it is,
+   * that means the list was created with an old
+   * most recent message and the whole list is invalid*)
+  let check_response_validity old_last =
+    match !current_state.mode with
+    | General -> false
+    | Inchat x -> match x.last, old_last with
+      | (None, None) -> true
+      | (Some a, Some b) -> a = b
+      | _ -> false
+
   let refresh_messages {cr = c; last = m} =
     let uid = !current_state.info.username in
-    (*lprint "refresh" >>= fun () ->*)
     Quester.see_messages uid c >>= fun mlist ->
-    let (m', mlist') = shorten_messages m mlist in
-    let p (cont: Type_info.msg) = 
-      print_message cont.user cont.message in
-    set_chat {last = m'; cr = c};
-    mlist' |> display_list p
+    if check_response_validity m then
+      let (m', mlist') = shorten_messages m mlist in
+      let p (cont: Type_info.msg) = 
+        print_message cont.user cont.message in
+      set_chat {last = m'; cr = c};
+      mlist' |> display_list p
+    else return ()
 
   let handle_send_message {cr = c; last = _} s = 
     let uid = !current_state.info.username in
@@ -200,7 +214,7 @@ module MakeInterface (Quester : Api.Requester) = struct
       };
       info = {username = uid};
       status = !current_state.status
-    }; lprint ("entered " ^ crm.name) >>= fork_refresh
+    }; lprint ("entered " ^ crm.name ^ "\n") >>= fork_refresh
     | Fail s -> lprint s
 
   (************ End Formatting and printing **********)
@@ -225,7 +239,7 @@ module MakeInterface (Quester : Api.Requester) = struct
         failwith "unimplemented")
 
   let process_msg cht =
-    message_prompt () >>= lread >>= function
+    (*message_prompt () >>=*) lread () >>= function
     | "\\exit" -> handle_exit_room ()
     | "\\r" -> refresh_messages cht
     | s -> handle_send_message cht s
