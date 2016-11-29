@@ -16,7 +16,7 @@ module type Client = sig
 
   (*val init : unit -> unit*)
 
-  val init : string -> int -> (request -> response Lwt.t)
+  val init : string -> int -> (request -> response Lwt.t) Lwt.t
 
   (*val send_req : request -> response Lwt.t*)
 
@@ -47,7 +47,9 @@ module type RequesterMaker =
 
 module MakeRequester (Cl : Client) = struct
 
-  let send_req = Cl.init "localhost" 3110
+  let send_req =  
+    let sender = Cl.init "localhost" 3110 in
+    (fun req -> sender >>= fun s -> s req)
 
   (* A wrapper for response handling that raises a useless
    * error if the request was unsuccessful *)

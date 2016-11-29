@@ -156,6 +156,7 @@ module MakeInterface (Quester : Api.Requester) = struct
 
   let refresh_messages {cr = c; last = m} =
     let uid = !current_state.info.username in
+    (*lprint "refresh" >>= fun () ->*)
     Quester.see_messages uid c >>= fun mlist ->
     let (m', mlist') = shorten_messages m mlist in
     let p (cont: Type_info.msg) = 
@@ -176,8 +177,8 @@ module MakeInterface (Quester : Api.Requester) = struct
         (let rec loop () =
           match !current_state.mode with
           | Inchat x -> refresh_messages x >>= loop
-          | General -> exit 0 in
-        loop ()) |> Lwt_main.run
+          | General -> lprint "done" >>= fun _ -> exit 0 in
+        loop ())
     | id -> return ()
 
   let handle_enter_room s =

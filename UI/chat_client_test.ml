@@ -2,6 +2,8 @@ open Type_info
 open Unix
 open Lwt
 
+let mut = Lwt_mutex.create ()
+
 (* [get_requester server port] takes a string [server] and
  * an integer [port] and produces a function request -> response Lwt.t
  * which may be used to send requests to the server at port [port] *)
@@ -23,10 +25,14 @@ let init server port =
      * ic = input channel of client *)
     (Lwt_io.open_connection sockaddr >|= fun (ic, oc) -> 
       (fun req ->
+        Lwt_mutex.lock mut >>= fun () ->
         let req' = req |> req_to_string in
+        (*Lwt_io.write_line Lwt_io.stdout "writing" >>= fun () ->*)
         Lwt_io.write_line oc req' >>= fun () ->
         Lwt_io.flush oc >>= fun () ->
-        Lwt_io.read_line ic >|= resp_from_string)) |> Lwt_main.run
+        Lwt_io.read_line ic >|= resp_from_string >|= fun r ->
+        (*Lwt_io.write_line Lwt_io.stdout "reading" >|= fun () ->*)
+        Lwt_mutex.unlock mut; r))
     (*match Lwt_unix.fork () with 
     | 0 -> client_child_fun oc ; exit 0
     | id -> client_parent_fun ic ; Lwt_io.close ic |> Lwt_main.run ; ignore (Unix.waitpid [] id)*)
