@@ -137,12 +137,29 @@ let post_room cr =
         (Nothing, Fail "one or more participants is not registered")
   else (Nothing, Fail "room name exists already")
 
+(*returns the reversed list of all messages
+ * more recent than m in mlst. Requires
+ * that mlst be sorted such that most recent
+ * messages are first *)
+let shorten_messages m mlst =
+  let rec get_lst lst acc m =
+    match lst with
+    | h :: t -> 
+        if h = m then acc 
+        else get_lst t (h :: acc) m
+    | [] -> [] in
+  match m,mlst with
+  | (None, h::t) -> List.rev mlst
+  | (Some x, h::t) -> get_lst mlst [] x
+  | (_, []) -> []
 
-let get_messages uname cr =
+
+let get_messages uname last cr =
   if List.mem uname cr.participants then
     if Hashtbl.mem rooms cr.name then
       let msgs = Hashtbl.find rooms cr.name |> snd in
-      (Messages msgs, Success)
+      let msgs' = msgs |> shorten_messages last in
+      (Messages msgs', Success)
     else (Nothing, Fail "no such room exists")
   else (Nothing, Fail "you don't have access to that room")
 
@@ -187,7 +204,7 @@ let handle_request req oc =
   | Unblock (user, target) -> handle_unblock user target
   | Message msg -> post_message msg
   | Listrooms identifier -> get_rooms identifier
-  | Listmessages (identifier, cr) -> get_messages identifier cr
+  | Listmessages (identifier, last, cr) -> get_messages identifier last cr
   | Newroom cr -> post_room cr
   | Getroom (identifier, crname) -> get_room identifier crname
   | Listusers -> get_users ()

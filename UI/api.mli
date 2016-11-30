@@ -27,7 +27,7 @@ module type Requester = sig
 
   val see_users : unit -> id list Lwt.t
 
-  val see_messages : id -> Type_info.chatroom -> msg list Lwt.t
+  val see_messages : id -> Type_info.msg option -> Type_info.chatroom -> msg list Lwt.t
 
   val block_user : id -> id -> success Lwt.t
 

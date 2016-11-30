@@ -43,7 +43,7 @@ type request =
   | Block of id * id
   | Unblock of id * id
   | Listrooms of id
-  | Listmessages of id * chatroom
+  | Listmessages of id * msg option * chatroom
   | Newroom of chatroom
   | Getroom of id * string
   | Listusers 

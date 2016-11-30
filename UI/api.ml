@@ -30,7 +30,7 @@ module type Requester = sig
 
   val see_users : unit -> id list Lwt.t
 
-  val see_messages : id -> Type_info.chatroom -> msg list Lwt.t
+  val see_messages : id -> Type_info.msg option -> Type_info.chatroom -> msg list Lwt.t
 
   val block_user : id -> id -> success Lwt.t
 
@@ -83,10 +83,10 @@ module MakeRequester (Cl : Client) = struct
     send_req req >|= fun (r, succ) ->
     (f r, succ)
    
-  let see_messages identifier cr = (* () -> msg list*)
+  let see_messages identifier last cr = (* () -> msg list*)
     let f = function
       | Messages lst -> lst | _ -> raise ClientError in
-    send_req (Listmessages (identifier, cr)) >|= 
+    send_req (Listmessages (identifier, last, cr)) >|= 
     (handle_response f)
 
   let block_user identifier target = (*id -> success*)

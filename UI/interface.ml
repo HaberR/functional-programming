@@ -139,22 +139,6 @@ module MakeInterface (Quester : Api.Requester) = struct
     else return ()) >>= fun _ ->
     lprint msg
 
-  (*returns the reversed list of all messages
-   * more recent than m in mlst. Requires
-   * that mlst be sorted such that most recent
-   * messages are first *)
-  let shorten_messages m mlst =
-    let rec get_lst lst acc m =
-      match lst with
-      | h :: t -> 
-          if h = m then acc 
-          else get_lst t (h :: acc) m
-      | [] -> [] in
-    match m,mlst with
-    | (None, h::t) -> (Some h, List.rev mlst)
-    | (Some x, h::t) -> (Some h, get_lst mlst [] x)
-    | a -> a
-
   (* [check_response_validity mlist] takes in a
    * message list and makes sure that the most recent
    * message is not included in the list. If it is,
@@ -168,15 +152,23 @@ module MakeInterface (Quester : Api.Requester) = struct
       | (Some a, Some b) -> a = b
       | _ -> false
 
+  let rec last_elem old lst = 
+    match lst with
+    | h1 :: h2 :: t -> last_elem old (h2 :: t)
+    | h :: t -> Some h
+    | [] -> old
+
   let refresh_messages {cr = c; last = m} =
     let uid = !current_state.info.username in
-    Quester.see_messages uid c >>= fun mlist ->
+    Quester.see_messages uid m c >>= fun mlist ->
     if check_response_validity m then
-      let (m', mlist') = shorten_messages m mlist in
+      (*let (m', mlist') = shorten_messages m mlist in*)
+      let last' = last_elem m mlist in
+      let mode' = Inchat {cr = c; last = last'} in
+      current_state := {!current_state with mode = mode'};
       let p (cont: Type_info.msg) = 
         print_message cont.user cont.message in
-      set_chat {last = m'; cr = c};
-      mlist' |> display_list p
+      mlist |> display_list p
     else return ()
 
   let handle_send_message {cr = c; last = _} s = 
@@ -185,8 +177,6 @@ module MakeInterface (Quester : Api.Requester) = struct
     match succ with
     | Success -> set_chat {last = Some msg; cr = c}; return ()
     | Fail b -> lprint b
-
-  let mut = Lwt_mutex.create()
 
   let fork_refresh () =
     Lwt.async (fun () ->
