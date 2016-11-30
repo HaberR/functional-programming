@@ -34,11 +34,15 @@ module type Requester = sig
 
   val block_user : id -> id -> success Lwt.t
 
+  val unblock_user : id -> id -> success Lwt.t
+
   val send_message : id -> Type_info.chatroom -> string -> (Type_info.msg * success) Lwt.t
 
   val get_room : id -> string -> (Type_info.chatroom * success) Lwt.t
 
   val new_room : id list -> string -> success Lwt.t
+
+  val add_user_to_room : id -> id -> string -> success Lwt.t
 end
 
 
@@ -89,6 +93,10 @@ module MakeRequester (Cl : Client) = struct
     let req = Block (identifier, target) in
     send_req req >|= snd
 
+  let unblock_user identifier target =
+    let req = Unblock (identifier, target) in
+    send_req req >|= snd
+
   let send_message identifier cr content = (*string -> success*)
     let cont = {
       user = identifier;
@@ -105,6 +113,10 @@ module MakeRequester (Cl : Client) = struct
       name = crname;
       participants = members;
     } in
+    send_req req >|= snd
+
+  let add_user_to_room user target crname =
+    let req = AddToRoom (user, target, crname) in
     send_req req >|= snd
 
 end

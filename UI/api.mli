@@ -31,11 +31,15 @@ module type Requester = sig
 
   val block_user : id -> id -> success Lwt.t
 
+  val unblock_user : id -> id -> success Lwt.t
+
   val send_message : id -> Type_info.chatroom -> string -> (Type_info.msg * success) Lwt.t
 
   val get_room : id -> string -> (Type_info.chatroom * success) Lwt.t
 
   val new_room : id list -> string -> success Lwt.t
+
+  val add_user_to_room : id -> id -> string -> success Lwt.t
 end
 
 module type RequesterMaker =

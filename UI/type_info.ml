@@ -33,11 +33,13 @@ type request =
   | Message of msg
   | Login of id
   | Block of id * id
+  | Unblock of id * id
   | Listrooms of id
   | Listmessages of id * chatroom
   | Newroom of chatroom 
   | Getroom of id * string
-  | Listusers [@@deriving sexp]
+  | Listusers 
+  | AddToRoom of id * id * string [@@deriving sexp]
 
 type resp = 
   | Chatroom of chatroom
