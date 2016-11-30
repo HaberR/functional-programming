@@ -247,11 +247,22 @@ let create_server sock =
     Lwt_unix.accept sock >>= accept_connection >>= serve
   in serve
 
+let get_my_addr () =
+  let addr = 
+    if Array.length Sys.argv > 1 && Sys.argv.(1) = "-o" then
+      (Unix.gethostbyname(Unix.gethostname())).Unix.h_addr_list.(0)
+    else Unix.inet_addr_loopback in
+  let s = Unix.string_of_inet_addr addr in
+  Lwt.async ( fun () ->
+    Lwt_io.write_line Lwt_io.stdout ("running on port 3110 of " ^ s);
+  );
+  addr
+
 (* assume this just creates the socket ...*)
 let create_socket () =
   let open Lwt_unix in
   let sock = socket PF_INET SOCK_STREAM 0 in
-  bind sock @@ ADDR_INET(Unix.inet_addr_loopback, 3110);
+  bind sock @@ ADDR_INET(get_my_addr (), 3110);
   listen sock backlog;
   sock
 
