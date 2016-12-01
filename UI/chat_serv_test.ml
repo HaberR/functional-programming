@@ -3,10 +3,10 @@ open Type_info
 
 type user_info = {
   username: id; 
-  password: id;
-  mutable blocked: string list; 
-  (*mutable rooms: chatroom list;*)
-  (*oc: Lwt_io.output_channel;*)
+  password: id; 
+  mutable blocked: string list; (* 
+  mutable rooms: chatroom list;
+  oc: Lwt_io.output_channel; *)
 }
 
 let (clients : (id, user_info) Hashtbl.t) = Hashtbl.create 100
@@ -15,39 +15,22 @@ let (rooms : (string, Type_info.chatroom * msg list) Hashtbl.t) = Hashtbl.create
 (***************************************************)
 (****** handlers and helpers for handle_request ****)
 (***************************************************)
-(* let handle_login i out_chan =
-  if Hashtbl.mem clients i |> not then
-    let info = { 
-      username = i;
-      blocked = [];
-      (*rooms = [];
-      oc = out_chan*)
-    } in
-    Hashtbl.add clients i info;
-    (Nothing, Success)
-  else (Nothing, Success) *)
+
 (* [handle_login i oc] returns a success response
  * and registers the user if they aren't already registered
  * (adding them to the client hashtbl) *)
-let handle_login i out_chan =
+let handle_login i oc =
   if Hashtbl.mem clients i then
-    (* let info = { 
-      username = i;
-      blocked = [];
-      rooms = [];
-      oc = out_chan
-    } in
-    Hashtbl.add clients i info; *)
     (Nothing, Success)
   else (Nothing, Fail "user not registered")
 
 let handle_reg id pswd oc = 
   let info = { 
       username = id;
-      blocked = [];
       password = pswd;
-      (*rooms = [];
-      oc = out_chan*)
+      blocked = [];(* 
+      rooms = [];
+      oc = oc *)
     } in
     Hashtbl.add clients id info;
     (Nothing, Success)
