@@ -16,13 +16,22 @@ let (rooms : (string, Type_info.chatroom * msg list) Hashtbl.t) = Hashtbl.create
 (****** handlers and helpers for handle_request ****)
 (***************************************************)
 
+let (|>?) u f =
+  if Hashtbl.mem clients u then f u
+  else (Nothing, Fail (u ^ " is not registered"))
+
+let (|>??) r f = 
+  if Hashtbl.mem rooms r then f r
+  else (Nothing, Fail ("the room " ^ r ^ " does not exist"))
+
 (* [handle_login i oc] returns a success response
  * and registers the user if they aren't already registered
  * (adding them to the client hashtbl) *)
 let handle_login i oc =
-  if Hashtbl.mem clients i then
+  i |>? fun _ -> (Nothing, Success)
+  (*if Hashtbl.mem clients i then
     (Nothing, Success)
-  else (Nothing, Fail "user not registered")
+  else (Nothing, Fail "user not registered")*)
 
 let handle_reg id pswd oc = 
   let info = { 
@@ -35,7 +44,8 @@ let handle_reg id pswd oc =
     Hashtbl.add clients id info;
     (Nothing, Success)
 
-let handle_auth nm pswd oc = 
+let handle_auth u pswd oc = 
+  u |>? fun nm ->
   let target = Hashtbl.find clients nm in 
   if target.password=pswd then (Nothing, Success)
   else (Nothing, Fail "wrong password")
@@ -92,40 +102,34 @@ let leave u t =
 (* [handle_block u t] removes [u] from all the
  * chat rooms [t] is in and adds [t] to [u]'s
  * block list *)
-let handle_block u t =
-  if Hashtbl.mem clients u then
-    if Hashtbl.mem clients t then
-      let user_info = Hashtbl.find clients u in
-      user_info.blocked <- t :: user_info.blocked;
-      leave u t;
-      (Nothing, Success)
-    else (Nothing, Fail "target is not registered")
-  else (Nothing, Fail "user is not registered")
+let handle_block user target =
+  user |>? fun u ->
+  target |>? fun t ->
+  let user_info = Hashtbl.find clients u in
+  user_info.blocked <- t :: user_info.blocked;
+  leave u t;
+  (Nothing, Success)
 
-let handle_unblock u t =
-  if Hashtbl.mem clients u then
-    if Hashtbl.mem clients t then
-      let u_info = Hashtbl.find clients u in
-      let blocked' = u_info.blocked |> List.filter ((<>) t) in
-      u_info.blocked <- blocked'; 
-      (Nothing, Success)
-    else (Nothing, Fail (t ^ " is not registered"))
-  else (Nothing, Fail (u ^ " is not registered"))
+let handle_unblock user target =
+  user |>? fun u ->
+  target |>? fun t ->
+  let u_info = Hashtbl.find clients u in
+  let blocked' = u_info.blocked |> List.filter ((<>) t) in
+  u_info.blocked <- blocked'; 
+  (Nothing, Success)
 
 
 (* [post_message msg] posts a message to the room
  * specified in [msg] provided that the sender id
  * has access to the room and the room exists. *)
 let post_message msg = 
-  let rmname = msg.room.name in
-  if Hashtbl.mem rooms rmname then
-    let (rm, msgs) = Hashtbl.find rooms rmname in
-    if rm.participants |> (List.mem msg.user) then
-      let msgs' = msg :: msgs in
-      Hashtbl.replace rooms rm.name (rm, msgs');
-      (Nothing, Success)
-    else (Nothing, Fail "You don't have access to that room")
-  else (Nothing, Fail ("No such room exists: " ^ rmname))
+  msg.room.name |>?? fun rmname ->
+  let (rm, msgs) = Hashtbl.find rooms rmname in
+  if rm.participants |> (List.mem msg.user) then
+    let msgs' = msg :: msgs in
+    Hashtbl.replace rooms rm.name (rm, msgs');
+    (Nothing, Success)
+  else (Nothing, Fail "You don't have access to that room")
 
 (* [post_room cr] creates a new chat room provided
  * that the chat room name does not exist already
@@ -165,21 +169,19 @@ let shorten_messages m mlst =
 
 
 let get_messages uname last cr =
+  cr.name |>?? fun _ ->
   if List.mem uname cr.participants then
-    if Hashtbl.mem rooms cr.name then
-      let msgs = Hashtbl.find rooms cr.name |> snd in
-      let msgs' = msgs |> shorten_messages last in
-      (Messages msgs', Success)
-    else (Nothing, Fail "no such room exists")
+    let msgs = Hashtbl.find rooms cr.name |> snd in
+    let msgs' = msgs |> shorten_messages last in
+    (Messages msgs', Success)
   else (Nothing, Fail "you don't have access to that room")
 
 let get_room i crname =
-  if Hashtbl.mem rooms crname then
-    let cr = Hashtbl.find rooms crname |> fst in
-    if List.mem i cr.participants then
-      (Chatroom cr, Success)
-    else (Nothing, Fail "You don't have access to that room")
-  else (Nothing, Fail "That room doesn't exist")
+  crname |>?? fun _ ->
+  let cr = Hashtbl.find rooms crname |> fst in
+  if List.mem i cr.participants then
+    (Chatroom cr, Success)
+  else (Nothing, Fail "You don't have access to that room")
 
 let get_users () =
   let fold i _ lst = i :: lst in
@@ -187,21 +189,30 @@ let get_users () =
   (Users lst, Success)
 
 let add_to_room u t crname =
-  if Hashtbl.mem rooms crname then
-    if Hashtbl.mem clients t then
-      let (cr, messages) = Hashtbl.find rooms crname in
-      if cr.participants |> List.mem t |> not then
-        let cr' = {cr with participants = t :: cr.participants} in
-        let conflicts = check_room cr' in
-        if 0 = List.length conflicts then
-          (Hashtbl.replace rooms crname (cr', messages);
-          (Nothing, Success))
-        else 
-          let err_msg = conflicts |> list_to_string in
-          (Nothing, Fail (err_msg))
-      else (Nothing, Fail (t ^ " is already in the room"))
-    else (Nothing, Fail (t ^ " is not registered"))
-  else (Nothing, Fail "invalid room name")
+  crname |>?? fun _ ->
+  t |>? fun _ ->
+  let (cr, messages) = Hashtbl.find rooms crname in
+  if cr.participants |> List.mem t |> not then
+    let cr' = {cr with participants = t :: cr.participants} in
+    let conflicts = check_room cr' in
+    if 0 = List.length conflicts then
+      (Hashtbl.replace rooms crname (cr', messages);
+      (Nothing, Success))
+    else 
+      let err_msg = conflicts |> list_to_string in
+      (Nothing, Fail (err_msg))
+  else (Nothing, Fail (t ^ " is already in the room"))
+
+let leave_room u crname = 
+  u |>? fun _ ->
+  crname |>?? fun _ -> 
+  let (cr, msg_hist) = Hashtbl.find rooms crname in
+  let p' = cr.participants |> List.filter ((<>) u) in
+  if List.length p' <> List.length cr.participants then
+    let cr' = {cr with participants = p'} in
+    Hashtbl.replace rooms crname (cr', msg_hist);
+    (Nothing, Success)
+  else (Nothing, Fail(u ^ " is not in room " ^ crname))
     
 
 (***************************************************)
@@ -221,6 +232,7 @@ let handle_request req oc =
   | Getroom (identifier, crname) -> get_room identifier crname
   | Listusers -> get_users ()
   | AddToRoom (user, target, crname) -> add_to_room user target crname
+  | LeaveRoom (user, crname) -> leave_room user crname
 
 let send_response oc resp = 
   resp 

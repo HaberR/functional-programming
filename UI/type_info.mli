@@ -49,7 +49,8 @@ type request =
   | Newroom of chatroom
   | Getroom of id * string
   | Listusers 
-  | AddToRoom of id * id * string [@@deriving sexp]
+  | AddToRoom of id * id * string 
+  | LeaveRoom of id * string [@@deriving sexp]
 
 type resp = 
   | Chatroom of chatroom

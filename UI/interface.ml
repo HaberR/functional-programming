@@ -218,6 +218,13 @@ module MakeInterface (Quester : Api.Requester) = struct
     }; lprint ("entered " ^ crm.name ^ "\n") >>= fork_refresh
     | Fail s -> lprint s
 
+  let handle_leave_room s =
+    let crname = Str.matched_group 1 s in
+    let uid = !current_state.info.username in
+    Quester.leave_room uid crname >>= function
+    | Success -> return ()
+    | Fail s -> lprint s
+
   let handle_block s =
     let nm = Str.matched_group 1 s in
     let uid = !current_state.info.username in
@@ -259,6 +266,7 @@ module MakeInterface (Quester : Api.Requester) = struct
     else if "^ls rooms" |> sm then handle_ls_rooms ()
     else if "^new room" |> sm then handle_new_room ()
     else if "^enter \\(.*\\)" |> sm then handle_enter_room s
+    else if "^leave \\(.*\\)" |> sm then handle_leave_room s
     else if "^block \\(.*\\)" |> sm then handle_block s
     else if "^unblock \\(.*\\)" |> sm then handle_unblock s
     (*else if "^open \\(.*\\)" |> sm then 

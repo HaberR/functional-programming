@@ -47,6 +47,9 @@ module type Requester = sig
   val new_room : id list -> string -> success Lwt.t
 
   val add_user_to_room : id -> id -> string -> success Lwt.t
+
+  val leave_room : id -> string -> success Lwt.t
+
 end
 
 
@@ -97,9 +100,10 @@ module MakeRequester (Cl : Client) = struct
   let get_room identifier crname =
     let req = Getroom (identifier, crname) in
     let f = function
-      | Chatroom cr -> cr | _ -> raise ClientError in
-    send_req req >|= fun (r, succ) ->
-    (f r, succ)
+    | (Chatroom cr, Success) -> (cr, Success)
+    | (_, Success) -> raise ClientError
+    | (_,Fail s) -> ({participants = []; name = ""}, Fail s) in
+    send_req req >|= f
    
   let see_messages identifier last cr = (* () -> msg list*)
     let f = function
@@ -135,6 +139,10 @@ module MakeRequester (Cl : Client) = struct
 
   let add_user_to_room user target crname =
     let req = AddToRoom (user, target, crname) in
+    send_req req >|= snd
+
+  let leave_room user crname =
+    let req = LeaveRoom (user, crname) in
     send_req req >|= snd
 
 end
