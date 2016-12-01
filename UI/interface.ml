@@ -42,23 +42,6 @@ module MakeInterface (Quester : Api.Requester) = struct
     status = []
   })
 
-  let log_on identifier = 
-    Quester.login identifier >|= fun succ ->
-      (if succ=Success then
-        current_state := {
-        mode = General;
-        info = { username = identifier };
-        status = []
-        }); succ
-
-  let set_chat cr_and_last = 
-    current_state := {
-      mode = Inchat cr_and_last;
-      info = !current_state.info;
-      status = !current_state.status;
-    }
-  (************ end init stuff ***********************)
-
   let lread () =
     Lwt_io.read_line Lwt_io.stdin
 
@@ -71,10 +54,48 @@ module MakeInterface (Quester : Api.Requester) = struct
   let message_prompt () =
     lprint "\n"
 
+  let rec handle_register () = 
+    lprint "enter preffered id: " >>= command_prompt>>= 
+    lread >>= fun id -> Quester.login id >>= function
+    | Fail b -> lprint "enter preffered Password: " >>=
+          command_prompt>>= lread>>= fun pswd1 ->
+          lprint "re-enter Password: " >>= 
+          command_prompt>>=lread>>= fun pswd2 ->
+          if pswd1=pswd2 then Quester.register id pswd2 
+          else (* (lprint "Passwords not matching" );  *)handle_register ()
+
+    | Success  ->(*  (lprint "this id is already registered to another client\n"); *) handle_register () 
+
+  let log_on identifier =
+      Quester.login identifier >|= fun succ -> succ
+
+  let auth_pswd pswd identifier = 
+      Quester.auth pswd identifier >|= fun succ ->
+      (if succ=Success then
+        current_state := {
+        mode = General;
+        info = { username = identifier };
+        status = []
+        }); succ(* 
+      else Fail) *)
+
+  let set_chat cr_and_last = 
+    current_state := {
+      mode = Inchat cr_and_last;
+      info = !current_state.info;
+      status = !current_state.status;
+    }
+  (************ end init stuff ***********************)
+
   (* Displays the prompt for login *)
   let login_prompt () = 
-    lprint "id: "
+    lprint "Enter your (id) or (N) for new user\nid: "
 
+  let fail_pswd () = 
+    lprint "Wrong Password\n"
+
+  let not_id () = 
+    lprint "This id is not registered\n"
   (*let print_in_place lst txt =
     let x, y = T.pos_cursor () in
     T.print_string lst txt;
@@ -231,10 +252,10 @@ module MakeInterface (Quester : Api.Requester) = struct
 
   (************ process command and helpers **********)
 
+
   let str_mtch s re = 
     let re' = Str.regexp re in
     Str.string_match re' s 0
-
 
   let process_command () =
     command_prompt () >>= lread >>= fun s ->
@@ -280,12 +301,21 @@ module MakeInterface (Quester : Api.Requester) = struct
     process_input () >>= repl
 
   let rec run () =
-    login_prompt() >>=
+    login_prompt() >>= 
     command_prompt >>= fun _ ->
-    Lwt_io.read_line Lwt_io.stdin >>=
-    log_on >>= fun succ ->
-      if succ=Success then repl ()
-      else run ()
+    Lwt_io.read_line Lwt_io.stdin >>= fun id ->
+    if "^N" |> str_mtch id then handle_register ()>>=fun _->run()
+
+    else
+      log_on id >>= fun succ ->
+        if succ=Success then 
+          lprint "\nPassword:" >>= fun _ ->
+          Lwt_io.read_line Lwt_io.stdin >>= fun pswd->
+          auth_pswd id pswd >>= fun succ2 ->
+            if succ2=Success then
+              repl ()
+            else run()
+        else run ()
 
   let _ = run () |> Lwt_main.run
 

@@ -26,6 +26,10 @@ module type Requester = sig
 
   val login : id -> success Lwt.t
 
+  val register: id -> string-> success Lwt.t
+
+  val auth : id -> string-> success Lwt.t
+
   val see_chatrooms : id -> Type_info.chatroom list Lwt.t
 
   val see_users : unit -> id list Lwt.t
@@ -69,6 +73,14 @@ module MakeRequester (Cl : Client) = struct
 
   let login identifier =
     let req = Login identifier in
+    send_req req >|= snd
+
+  let register id pswd = 
+    let req = Register (id,pswd) in 
+    send_req req >|= snd
+
+  let auth identifier pswd =
+    let req = Auth (identifier, pswd) in
     send_req req >|= snd
 
   let see_chatrooms identifier =

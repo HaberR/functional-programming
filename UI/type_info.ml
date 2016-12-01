@@ -31,7 +31,9 @@ type req_header =
  * may send to the server*)
 type request = 
   | Message of msg
+  | Register of id * string 
   | Login of id
+  | Auth of id * string
   | Block of id * id
   | Unblock of id * id
   | Listrooms of id
