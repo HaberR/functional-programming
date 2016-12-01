@@ -49,16 +49,21 @@ type resp_header = Message | Login*)
  * may send to the server*)
 type request = 
   | Message of msg
+  | Register of id * string 
   | Login of id
+  | Auth of id * string
   | Block of id * id
+  | Unblock of id * id
   | Listrooms of id
-  | Listmessages of id * chatroom
+  | Listmessages of id * msg option * chatroom
   | Newroom of chatroom
   | Getroom of id * string
   | Listusers 
   | Newgame of gameroom 
   | Listgames of id 
-  | Getgame of id * string [@@deriving sexp]
+  | Getgame of id * string 
+  | AddToRoom of id * id * string 
+  | LeaveRoom of id * string [@@deriving sexp]
 
 type resp = 
   | Chatroom of chatroom

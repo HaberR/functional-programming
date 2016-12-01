@@ -82,9 +82,42 @@ module MakeInterface (Quester : Api.Requester) = struct
   let message_prompt () =
     lprint "\n"
 
+  let rec handle_register () = 
+    lprint "Choose your id: " >>= command_prompt>>= 
+    lread >>= fun id -> Quester.login id >>= function
+    | Fail b -> lprint "Create Password: " >>=
+          command_prompt>>= lread>>= fun pswd1 -> 
+          if (String.length pswd1 >=4) then 
+            lprint "Confirm Password: " >>= 
+            command_prompt>>=lread>>= fun pswd2 ->
+            if pswd1=pswd2 then Quester.register id pswd2 >|= fun succ ->
+              (if succ=Success then
+                current_state := {
+                mode = General;
+                info = { username = id };
+                status = []
+                }); succ
+            else (lprint "Passwords not matching\n") >>= fun _ ->handle_register ()
+          else lprint "Password should be at least 4 characters\n" >>= fun _ -> handle_register () 
+    | Success  ->(lprint "This id is already registered to another client\n") >>= fun _ -> handle_register () 
+
+  let log_on identifier =
+      Quester.login identifier >|= fun succ -> succ
+
+  let auth_pswd pswd identifier = 
+      Quester.auth pswd identifier >|= fun succ -> succ
+      
+  let set_chat cr_and_last = 
+    current_state := {
+      mode = Inchat cr_and_last;
+      info = !current_state.info;
+      status = !current_state.status;
+    }
+  (************ end init stuff ***********************)
+
   (* Displays the prompt for login *)
   let login_prompt () = 
-    lprint "id: "
+    lprint "Enter your (id) or (N) for new user\nid: "
 
   (*let print_in_place lst txt =
     let x, y = T.pos_cursor () in
@@ -132,7 +165,8 @@ module MakeInterface (Quester : Api.Requester) = struct
     lprint "participant list: " >>= command_prompt >>=
     lread >>= fun plst ->
     let lst = plst |> Str.split (Str.regexp " ") in
-    Quester.new_room lst rmname >>= function
+    let lst' = !current_state.info.username :: lst in
+    Quester.new_room lst' rmname >>= function
     | Success -> return ()
     | Fail s -> lprint s
     
@@ -146,6 +180,7 @@ module MakeInterface (Quester : Api.Requester) = struct
     else Quester.new_game plist gname >>= function 
     | Success -> return () 
     | Fail s -> lprint s   
+
 
   let handle_ls_users () =
     Quester.see_users () >>= fun ulst -> 
@@ -184,22 +219,6 @@ module MakeInterface (Quester : Api.Requester) = struct
     else return ()) >>= fun _ ->
     lprint msg
 
-  (*returns the reversed list of all messages
-   * more recent than m in mlst. Requires
-   * that mlst be sorted such that most recent
-   * messages are first *)
-  let shorten_messages m mlst =
-    let rec get_lst lst acc m =
-      match lst with
-      | h :: t -> 
-          if h = m then acc 
-          else get_lst t (h :: acc) m
-      | [] -> [] in
-    match m,mlst with
-    | (None, h::t) -> (Some h, List.rev mlst)
-    | (Some x, h::t) -> (Some h, get_lst mlst [] x)
-    | a -> a
-
   (* [check_response_validity mlist] takes in a
    * message list and makes sure that the most recent
    * message is not included in the list. If it is,
@@ -218,15 +237,23 @@ module MakeInterface (Quester : Api.Requester) = struct
     | General | Inchat _ -> false 
     | Ingame x -> x.last_state = old_state 
 
+  let rec last_elem old lst = 
+    match lst with
+    | h1 :: h2 :: t -> last_elem old (h2 :: t)
+    | h :: t -> Some h
+    | [] -> old
+
   let refresh_messages {cr = c; last = m} =
     let uid = !current_state.info.username in
-    Quester.see_messages uid c >>= fun mlist ->
+    Quester.see_messages uid m c >>= fun mlist ->
     if check_response_validity m then
-      let (m', mlist') = shorten_messages m mlist in
+      (*let (m', mlist') = shorten_messages m mlist in*)
+      let last' = last_elem m mlist in
+      let mode' = Inchat {cr = c; last = last'} in
+      current_state := {!current_state with mode = mode'};
       let p (cont: Type_info.msg) = 
         print_message cont.user cont.message in
-      set_chat {last = m'; cr = c};
-      mlist' |> display_list p
+      mlist |> display_list p
     else return ()
 
   let handle_send_message {cr = c; last = _} s = 
@@ -250,20 +277,12 @@ module MakeInterface (Quester : Api.Requester) = struct
   let mut = Lwt_mutex.create()
 
   let fork_refresh () =
-    (*match Lwt_unix.fork () with
-    | 0 -> 
-        (let rec loop () =
-          match !current_state.mode with
-          | Inchat x -> refresh_messages x >>= loop
-          | General -> lprint "done" >>= fun _ -> exit 0 in
-        loop ())
-    | id -> return ()*)
     Lwt.async (fun () ->
       let rec loop () =
         match !current_state.mode with
         | Inchat x -> refresh_messages x >>= loop
         | Ingame x -> refresh_game x >>= loop 
-        | General -> lprint "done" in
+        | General -> return () in 
       loop ()
     ); return ()
 
@@ -297,17 +316,50 @@ module MakeInterface (Quester : Api.Requester) = struct
       } ; lprint ("entered " ^ grm.name ^ "\n") >>= fork_refresh
     | Fail s -> lprint s 
 
+  let handle_leave_room s =
+    let crname = Str.matched_group 1 s in
+    let uid = !current_state.info.username in
+    Quester.leave_room uid crname >>= function
+    | Success -> return ()
+    | Fail s -> lprint s
+
+  let handle_block s =
+    let nm = Str.matched_group 1 s in
+    let uid = !current_state.info.username in
+    Quester.block_user uid nm >>= function
+    | Success -> return ()
+    | Fail s -> lprint s
+
+  let handle_unblock s =
+    let nm = Str.matched_group 1 s in
+    let uid = !current_state.info.username in
+    Quester.unblock_user uid nm >>= function
+    | Success -> return ()
+    | Fail s -> lprint s
+
+  let handle_add_to_room {cr = c; last = l} inpt =
+    let nm = Str.matched_group 1 inpt in
+    let uid = !current_state.info.username in
+    Quester.add_user_to_room uid nm c.name >>= function
+    | Success -> 
+        let newrm = {c with participants = inpt :: c.participants} in
+        let cht' = {cr = newrm; last = l} in
+        current_state := {!current_state with mode = Inchat cht'};
+        return ()
+    | Fail s -> lprint s >>= fun _ -> lprint "\n"
+
   (************ End Formatting and printing **********)
 
   (************ process command and helpers **********)
 
 
+  let str_mtch s re = 
+    let re' = Str.regexp re in
+    Str.string_match re' s 0
 
   let process_command () =
     command_prompt () >>= lread >>= fun s ->
-    let sm re = 
-      let re' = Str.regexp re in
-      Str.string_match re' s 0 in
+    let sm = str_mtch s in
     if      "^ls users" |> sm then handle_ls_users ()
     else if "^ls rooms" |> sm then handle_ls_rooms ()
     else if "^new room" |> sm then handle_new_room ()
@@ -315,22 +367,29 @@ module MakeInterface (Quester : Api.Requester) = struct
     else if "^ls games" |> sm then handle_ls_games () 
     else if "^play \\(.*\\)" |> sm then handle_enter_game s 
     else if "^enter \\(.*\\)" |> sm then handle_enter_room s
+    else if "^leave \\(.*\\)" |> sm then handle_leave_room s
+    else if "^block \\(.*\\)" |> sm then handle_block s
+    else if "^unblock \\(.*\\)" |> sm then handle_unblock s
     (*else if "^open \\(.*\\)" |> sm then 
     | "open" |> sm -> handle_open ()*)
     else       
         lprint "unrecognized command"
 
   let process_msg cht =
-    (*message_prompt () >>=*) lread () >>= function
-    | "\\exit" -> handle_exit_room ()
-    | "\\r" -> refresh_messages cht
-    | s -> handle_send_message cht s
+    lread () >>= fun inpt ->
+    if "\\\\add \\(.*\\)" |> str_mtch inpt then 
+      handle_add_to_room cht inpt
+    else
+      match inpt with
+      | "\\exit" -> handle_exit_room ()
+      | "\\r" -> refresh_messages cht
+      | s -> handle_send_message cht s
 
   let process_game g = 
     lread () >>= function 
     | "\\board" -> display_game_st g.last_state
     | "\\help" -> lprint "\\board to display the current board\n"
-    | _ -> lprint "unrecognized command"  
+    | _ -> lprint "unrecognized command\n"  
 
   let process_input () = 
     match !current_state.mode with
@@ -351,12 +410,21 @@ module MakeInterface (Quester : Api.Requester) = struct
     process_input () >>= repl
 
   let rec run () =
-    login_prompt() >>=
+    login_prompt() >>= 
     command_prompt >>= fun _ ->
-    Lwt_io.read_line Lwt_io.stdin >>=
-    log_on >>= fun succ ->
-      if succ=Success then repl ()
-      else run ()
+    Lwt_io.read_line Lwt_io.stdin >>= fun id ->
+    if "^[Nn]" |> str_mtch id then handle_register ()>>=fun _->run()
+
+    else
+      log_on id >>= fun succ ->
+        if succ=Success then 
+          lprint "\nPassword:" >>= fun _ ->
+          Lwt_io.read_line Lwt_io.stdin >>= fun pswd->
+          auth_pswd id pswd >>= fun succ2 ->
+            if succ2=Success then
+              repl ()
+            else lprint "Wrong Password \n" >>= fun _ -> run()
+        else lprint "This id is not recognized\n"  >>= fun _ -> run ()
 
   let _ = run () |> Lwt_main.run
 

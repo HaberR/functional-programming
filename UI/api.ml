@@ -26,13 +26,19 @@ module type Requester = sig
 
   val login : id -> success Lwt.t
 
+  val register: id -> string-> success Lwt.t
+
+  val auth : id -> string-> success Lwt.t
+
   val see_chatrooms : id -> Type_info.chatroom list Lwt.t
 
   val see_users : unit -> id list Lwt.t
 
-  val see_messages : id -> Type_info.chatroom -> msg list Lwt.t
+  val see_messages : id -> Type_info.msg option -> Type_info.chatroom -> msg list Lwt.t
 
   val block_user : id -> id -> success Lwt.t
+
+  val unblock_user : id -> id -> success Lwt.t
 
   val send_message : id -> Type_info.chatroom -> string -> (Type_info.msg * success) Lwt.t
 
@@ -45,6 +51,11 @@ module type Requester = sig
   val see_games : id -> Type_info.gameroom list Lwt.t 
 
   val get_game : id -> string -> ((Type_info.gameroom * Type_info.square list) * success) Lwt.t 
+
+  val add_user_to_room : id -> id -> string -> success Lwt.t
+
+  val leave_room : id -> string -> success Lwt.t
+
 end
 
 
@@ -54,7 +65,13 @@ module type RequesterMaker =
 module MakeRequester (Cl : Client) = struct
 
   let send_req =  
-    let sender = Cl.init "localhost" 3110 in
+    let h, p =
+      if Array.length Sys.argv > 2 then (Sys.argv.(1), Sys.argv.(2))
+      else ("localhost", "3110") in
+    Lwt.async (fun () -> 
+      let s = "connected to " ^ h ^ " at port " ^ p in
+      Lwt_io.write_line Lwt_io.stdout s); 
+    let sender = Cl.init h (int_of_string p) in
     (fun req -> sender >>= fun s -> s req)
 
   (* A wrapper for response handling that raises a useless
@@ -65,6 +82,14 @@ module MakeRequester (Cl : Client) = struct
 
   let login identifier =
     let req = Login identifier in
+    send_req req >|= snd
+
+  let register id pswd = 
+    let req = Register (id,pswd) in 
+    send_req req >|= snd
+
+  let auth identifier pswd =
+    let req = Auth (identifier, pswd) in
     send_req req >|= snd
 
   let see_chatrooms identifier =
@@ -81,18 +106,23 @@ module MakeRequester (Cl : Client) = struct
   let get_room identifier crname =
     let req = Getroom (identifier, crname) in
     let f = function
-      | Chatroom cr -> cr | _ -> raise ClientError in
-    send_req req >|= fun (r, succ) ->
-    (f r, succ)
+    | (Chatroom cr, Success) -> (cr, Success)
+    | (_, Success) -> raise ClientError
+    | (_,Fail s) -> ({participants = []; name = ""}, Fail s) in
+    send_req req >|= f
    
-  let see_messages identifier cr = (* () -> msg list*)
+  let see_messages identifier last cr = (* () -> msg list*)
     let f = function
       | Messages lst -> lst | _ -> raise ClientError in
-    send_req (Listmessages (identifier, cr)) >|= 
+    send_req (Listmessages (identifier, last, cr)) >|= 
     (handle_response f)
 
   let block_user identifier target = (*id -> success*)
     let req = Block (identifier, target) in
+    send_req req >|= snd
+
+  let unblock_user identifier target =
+    let req = Unblock (identifier, target) in
     send_req req >|= snd
 
   let send_message identifier cr content = (*string -> success*)
@@ -148,6 +178,14 @@ module MakeRequester (Cl : Client) = struct
       | _ -> raise ClientError in
     send_req (Getgamestate (identifier, gr)) >|= 
     (handle_response f)*)
+
+  let add_user_to_room user target crname =
+    let req = AddToRoom (user, target, crname) in
+    send_req req >|= snd
+
+  let leave_room user crname =
+    let req = LeaveRoom (user, crname) in
+    send_req req >|= snd
 
 end
 
