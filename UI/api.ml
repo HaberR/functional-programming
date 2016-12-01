@@ -1,6 +1,6 @@
 open Type_info
 open Lwt
-open Dummy_client
+(*open Dummy_client*)
 
 (* This module is nothing more
  * than a utility module for communicating 
@@ -39,6 +39,12 @@ module type Requester = sig
   val get_room : id -> string -> (Type_info.chatroom * success) Lwt.t
 
   val new_room : id list -> string -> success Lwt.t
+
+  val new_game : id list -> string -> success Lwt.t 
+
+  val see_games : id -> Type_info.gameroom list Lwt.t 
+
+  val get_game : id -> string -> ((Type_info.gameroom * Type_info.square list) * success) Lwt.t 
 end
 
 
@@ -106,6 +112,42 @@ module MakeRequester (Cl : Client) = struct
       participants = members;
     } in
     send_req req >|= snd
+
+  let new_game members gname = 
+    let req = Newgame {
+      name = gname ;
+      players = members }
+    in send_req req >|= snd 
+
+  let see_games id = 
+    let req = Listgames id in
+    let f = function
+    | Gamerooms glst -> glst 
+    | _ -> raise ClientError 
+    in send_req req >|= (handle_response f)
+
+  let get_game identifier grname =
+    let req = Getgame (identifier, grname) in
+    let f = function
+      | Gamestate (gr,st) -> (gr,st) 
+      | _ -> raise ClientError in
+    send_req req >|= fun (r, succ) ->
+    (f r, succ) 
+
+  (*let get_game_room identifier grname =
+    let req = Getgame (identifier, grname) in
+    let f = function
+      | Gamestate (gr,st) -> (gr,st) 
+      | _ -> raise ClientError in
+    send_req req >|= fun (r, succ) ->
+    (f r, succ) *)
+
+  (*let see_game_st id gr = 
+    let f = function
+      | Gamestate st -> st 
+      | _ -> raise ClientError in
+    send_req (Getgamestate (identifier, gr)) >|= 
+    (handle_response f)*)
 
 end
 

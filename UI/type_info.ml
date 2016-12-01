@@ -2,10 +2,18 @@ open Core.Std
 
 type id = string [@@deriving sexp]
 
+type square = N | X | O [@@deriving sexp]
+
 type chatroom =
   {
     name : string;
     participants : id list;
+  } [@@deriving sexp]
+
+type gameroom =
+  {
+    name : string ; 
+    players : id list ;
   } [@@deriving sexp]
 
 type msg = 
@@ -37,13 +45,19 @@ type request =
   | Listmessages of id * chatroom
   | Newroom of chatroom 
   | Getroom of id * string
-  | Listusers [@@deriving sexp]
+  | Listusers 
+  | Newgame of gameroom 
+  | Listgames of id 
+  | Getgame of id * string [@@deriving sexp]
 
 type resp = 
   | Chatroom of chatroom
+  | Gameroom of gameroom 
   | Messages of msg list
   | Chatrooms of chatroom list
   | Users of id list 
+  | Gamerooms of gameroom list 
+  | Gamestate of gameroom * square list 
   | Nothing [@@deriving sexp] 
 
 (* the type of the response *)

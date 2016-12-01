@@ -10,6 +10,8 @@ type user_info = {
 
 let (clients : (id, user_info) Hashtbl.t) = Hashtbl.create 100
 let (rooms : (string, chatroom * msg list) Hashtbl.t) = Hashtbl.create 100
+let (games : (string, gameroom * square list) Hashtbl.t) = 
+  Hashtbl.create 100 
 
 (***************************************************)
 (****** handlers and helpers for handle_request ****)
@@ -50,6 +52,17 @@ let check_room cr =
       (fun x -> user.username ^ " has blocked " ^ x) in
     stringified @ lst in
   List.fold_left fold [] cr.participants
+
+let check_game gr = 
+  let fold lst member =
+    let user = Hashtbl.find clients member in
+    let blocked = 
+      common_elem gr.players user.blocked in
+    let stringified = 
+      blocked |> List.map 
+      (fun x -> user.username ^ " has blocked " ^ x) in
+    stringified @ lst in
+  List.fold_left fold [] gr.players
 
 let list_to_string lst =
   let fold joined s = joined ^ "\n" ^ s in
@@ -98,7 +111,7 @@ let post_message msg =
 (* [post_room cr] creates a new chat room provided
  * that the chat room name does not exist already
  * and none of the members blocked each other *)
-let post_room cr = 
+let post_room (cr : chatroom) = 
   if Hashtbl.mem rooms cr.name |> not then
     try 
       let blocked = check_room cr in
@@ -112,6 +125,27 @@ let post_room cr =
     | Not_found -> 
         (Nothing, Fail "one or more participants is not registered")
   else (Nothing, Fail "room name exists already")
+
+let post_game gr = 
+  if Hashtbl.mem games gr.name |> not then 
+    try 
+      let blocked = check_game gr in 
+      if List.length blocked = 0 then 
+        (Hashtbl.add games gr.name (gr, [N;N;N;N;N;N;N;N;N]) ; 
+        (Nothing, Success))
+      else 
+        let err_msg = blocked |> list_to_string in 
+        (Nothing, Fail err_msg)
+    with
+    | Not_found -> (Nothing, Fail "one or more players is not registered")
+  else (Nothing, Fail "game name exists already")
+
+let get_games id = 
+  let fold _ (gr,_) lst = 
+    if List.mem id gr.players then gr :: lst
+    else lst in 
+  let lst = Hashtbl.fold fold games [] in 
+  (Gamerooms lst, Success) 
 
 let get_rooms i =
   let fold _ (cr,_) lst =
@@ -141,8 +175,16 @@ let get_users () =
   let lst = Hashtbl.fold fold clients [] in
   (Users lst, Success)
 
+let handle_get_game id grname =
+  if Hashtbl.mem games grname then 
+    let gr, st = Hashtbl.find games grname in 
+    if List.mem id gr.players then 
+      (Gamestate (gr,st), Success)
+    else (Nothing, Fail "invalid id for this game")
+  else (Nothing, Fail "invalid game")
+
 (***************************************************)
-(****** end of handlers and hepers *****************)
+(****** end of handlers and helpers *****************)
 (***************************************************)
 let handle_request req oc =
   match req |> req_from_string with
@@ -154,6 +196,9 @@ let handle_request req oc =
   | Newroom cr -> post_room cr
   | Getroom (identifier, crname) -> get_room identifier crname
   | Listusers -> get_users ()
+  | Newgame gr -> post_game gr
+  | Listgames id -> get_games id 
+  | Getgame (id, grname) -> handle_get_game id grname 
 
 let send_response oc resp = 
   resp 

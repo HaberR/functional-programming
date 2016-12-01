@@ -1,10 +1,20 @@
 (* id is the identifier for the user *)
 type id = string
 
+(*square is a type representing the state of a tic-tac-toe square
+ *N represents an empty square*)
+type square = N | X | O 
+
 type chatroom =
   {
     name : string;
     participants : id list;
+  }
+
+type gameroom = 
+  {
+    name : string ; 
+    players : id list ;
   }
 
 (* msg is the type of a message sent by the user to another
@@ -45,13 +55,19 @@ type request =
   | Listmessages of id * chatroom
   | Newroom of chatroom
   | Getroom of id * string
-  | Listusers [@@deriving sexp]
+  | Listusers 
+  | Newgame of gameroom 
+  | Listgames of id 
+  | Getgame of id * string [@@deriving sexp]
 
 type resp = 
   | Chatroom of chatroom
+  | Gameroom of gameroom
   | Messages of msg list
   | Chatrooms of chatroom list
   | Users of id list 
+  | Gamerooms of gameroom list 
+  | Gamestate of gameroom * square list 
   | Nothing [@@deriving sexp] 
 
 (* the type of the response *)
