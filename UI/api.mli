@@ -23,6 +23,10 @@ module type Requester = sig
 
   val login : id -> success Lwt.t
 
+  val register: id -> string-> success Lwt.t
+
+  val auth : id -> string-> success Lwt.t
+
   val see_chatrooms : id -> Type_info.chatroom list Lwt.t
 
   val see_users : unit -> id list Lwt.t

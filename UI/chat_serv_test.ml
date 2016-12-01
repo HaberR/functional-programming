@@ -3,6 +3,7 @@ open Type_info
 
 type user_info = {
   username: id; 
+  password: id;
   mutable blocked: string list; 
   (*mutable rooms: chatroom list;*)
   (*oc: Lwt_io.output_channel;*)
@@ -14,11 +15,7 @@ let (rooms : (string, Type_info.chatroom * msg list) Hashtbl.t) = Hashtbl.create
 (***************************************************)
 (****** handlers and helpers for handle_request ****)
 (***************************************************)
-
-(* [handle_login i oc] returns a success response
- * and registers the user if they aren't already registered
- * (adding them to the client hashtbl) *)
-let handle_login i out_chan =
+(* let handle_login i out_chan =
   if Hashtbl.mem clients i |> not then
     let info = { 
       username = i;
@@ -28,8 +25,38 @@ let handle_login i out_chan =
     } in
     Hashtbl.add clients i info;
     (Nothing, Success)
-  else (Nothing, Success)
-  
+  else (Nothing, Success) *)
+(* [handle_login i oc] returns a success response
+ * and registers the user if they aren't already registered
+ * (adding them to the client hashtbl) *)
+let handle_login i out_chan =
+  if Hashtbl.mem clients i then
+    (* let info = { 
+      username = i;
+      blocked = [];
+      rooms = [];
+      oc = out_chan
+    } in
+    Hashtbl.add clients i info; *)
+    (Nothing, Success)
+  else (Nothing, Fail "user not registered")
+
+let handle_reg id pswd oc = 
+  let info = { 
+      username = id;
+      blocked = [];
+      password = pswd;
+      (*rooms = [];
+      oc = out_chan*)
+    } in
+    Hashtbl.add clients id info;
+    (Nothing, Success)
+
+let handle_auth nm pswd oc = 
+  let target = Hashtbl.find clients nm in 
+  if target.password=pswd then (Nothing, Success)
+  else (Nothing, Fail "wrong password")
+
 (*[common_elem l1 l2] is l3 where x is in l3 iff
  * x is in l1 and x is in l2 *)
 let common_elem lst1 lst2 =
@@ -200,6 +227,8 @@ let add_to_room u t crname =
 let handle_request req oc =
   match req |> req_from_string with
   | Login identifier -> handle_login identifier oc
+  | Register (identifier, pswd) -> handle_reg identifier pswd oc 
+  | Auth (identifier, pswd) -> handle_auth identifier pswd oc
   | Block (user, target) -> handle_block user target
   | Unblock (user, target) -> handle_unblock user target
   | Message msg -> post_message msg
