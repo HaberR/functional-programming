@@ -56,6 +56,7 @@ module type Requester = sig
 
   val leave_room : id -> string -> success Lwt.t
 
+  val fill_board : id -> Type_info.gameroom -> int -> success Lwt.t
 end
 
 
@@ -163,6 +164,10 @@ module MakeRequester (Cl : Client) = struct
       | _ -> raise ClientError in
     send_req req >|= fun (r, succ) ->
     (f r, succ) 
+
+  let fill_board id gr sq_num = 
+    let req = Changegamest (id, gr, sq_num) in 
+    send_req req >|= snd 
 
   (*let get_game_room identifier grname =
     let req = Getgame (identifier, grname) in

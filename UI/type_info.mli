@@ -2,8 +2,9 @@
 type id = string
 
 (*square is a type representing the state of a tic-tac-toe square
- *N represents an empty square*)
-type square = N | X | O 
+ *N represents an empty square; Init represents the initialization
+ *of the board when a user first enters a game*)
+type square = N | X | O | Init
 
 type chatroom =
   {
@@ -62,6 +63,7 @@ type request =
   | Newgame of gameroom 
   | Listgames of id 
   | Getgame of id * string 
+  | Changegamest of id * gameroom * int
   | AddToRoom of id * id * string 
   | LeaveRoom of id * string [@@deriving sexp]
 

@@ -238,6 +238,26 @@ let handle_get_game id grname =
     else (Nothing, Fail "invalid id for this game")
   else (Nothing, Fail "invalid game")
 
+(*[replace_nth lst n x] returns the square list lst with the nth
+ *element replaced with x (starting from n=0). Cannot replace a
+ *square that has already been played (i.e. occupied by X or O)
+ *requires: 0 <= n < List.length lst*)
+let rec replace_nth lst n x = match lst with 
+  | h::t -> if n=0 then 
+              if h=N then x::t else failwith "invalid move"
+            else h::(replace_nth t (n-1) x)
+  | [] -> failwith "failure in replace_nth"
+
+let change_game_st id gr sq_num = 
+  let st = Hashtbl.find games gr.name |> snd in 
+  let p1::p2::[] = gr.players in 
+  let xo = if id=p1 then X else if id=p2 then O else N in 
+  if xo=N then (Nothing, Fail "Invalid player in game\n") 
+  else try 
+  (Hashtbl.replace games gr.name (gr, replace_nth st sq_num xo) ;
+  (Nothing, Success)) 
+  with Failure "invalid move" -> (Nothing, Fail "Invalid move\n")
+
 let add_to_room u t crname =
   crname |>?? fun _ ->
   t |>? fun _ ->
@@ -283,7 +303,8 @@ let handle_request req oc =
   | Listusers -> get_users ()
   | Newgame gr -> post_game gr
   | Listgames id -> get_games id 
-  | Getgame (id, grname) -> handle_get_game id grname 
+  | Getgame (id, grname) -> handle_get_game id grname
+  | Changegamest (id, gr, st) -> change_game_st id gr st  
   | AddToRoom (user, target, crname) -> add_to_room user target crname
   | LeaveRoom (user, crname) -> leave_room user crname
 

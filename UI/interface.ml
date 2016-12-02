@@ -139,7 +139,7 @@ module MakeInterface (Quester : Api.Requester) = struct
       lprint "\n" >>= fun _ -> p t) 
       else (incr format ; lprint (string_of_square h) >>= fun _ ->
       lprint " " >>= fun _ -> p t) 
-    | [] ->  return () 
+    | [] ->  lprint "\n" 
     in p st 
 
   (* Displays an arbitrary list with an arbitrary
@@ -232,10 +232,10 @@ module MakeInterface (Quester : Api.Requester) = struct
       | (Some a, Some b) -> a = b
       | _ -> false
   
-  let check_game_state old_state = 
+  let check_game_state serv_state last_state = 
     match !current_state.mode with 
     | General | Inchat _ -> false 
-    | Ingame x -> x.last_state = old_state 
+    | Ingame _ -> last_state = serv_state 
 
   let rec last_elem old lst = 
     match lst with
@@ -263,16 +263,16 @@ module MakeInterface (Quester : Api.Requester) = struct
     | Success -> set_chat {last = Some msg; cr = c}; return ()
     | Fail b -> lprint b
 
-  let refresh_game {gr = g ; last_state = st} =
+  let refresh_game {gr = g ; last_state = last} =
     let uid = !current_state.info.username in 
-    Quester.get_game uid g.name >>= fun (st,_) ->
-    if check_game_state (snd st) then 
-      (*(set_game {gr = g ; last_state = (snd st)} ;
-      display_game_st (snd st)) *)
+    Quester.get_game uid g.name >>= fun (gr_st,_) ->
+    let st = snd gr_st in 
+    if check_game_state st last || !current_state.mode = General then 
       return () 
     else  
-      (set_game {gr = g ; last_state = (snd st)} ;
-      display_game_st (snd st))
+      let mode' = Ingame {gr=g; last_state=st} in 
+      (current_state := {!current_state with mode = mode'} ;
+      display_game_st st)
 
   let mut = Lwt_mutex.create()
 
@@ -309,11 +309,39 @@ module MakeInterface (Quester : Api.Requester) = struct
     | Success -> current_state := {
       mode = Ingame {
         gr = grm ;
-        last_state = [N;N;N;N;N;N;N;N;N]
+        last_state = [] (*[N;N;N;N;N;N;N;N;N]*)
       } ; 
       info = {username = uid} ;
       status = !current_state.status
       } ; lprint ("entered " ^ grm.name ^ "\n") >>= fork_refresh
+    | Fail s -> lprint s 
+
+  let handle_exit_game () = 
+    let uid = !current_state.info.username in
+    (current_state := {
+      mode = General;
+      info = {username = uid};
+      status = !current_state.status
+    }) |> return
+
+  (*[replace lst n x] returns the list lst with the nth
+   *element replaced with x (starting from n=0)
+   *requires: 0 <= n < List.length lst*)
+  let rec replace lst n x = match lst with 
+  | h::t -> if n=0 then x::t
+            else h::(replace t (n-1) x)
+  | [] -> failwith "failure in replace"
+
+  let handle_fill {gr = g ; last_state = st} inpt = 
+    let uid = !current_state.info.username in 
+    let sq_num = try Str.matched_group 1 inpt |> int_of_string 
+                 with _ -> -1 
+    in
+    if sq_num < 0 || sq_num >= List.length st 
+    then lprint "invalid square number"
+    (*else let st' = replace st sq_num X in *)
+    else Quester.fill_board uid g sq_num >>= function 
+    | Success -> return () 
     | Fail s -> lprint s 
 
   let handle_leave_room s =
@@ -373,7 +401,7 @@ module MakeInterface (Quester : Api.Requester) = struct
     (*else if "^open \\(.*\\)" |> sm then 
     | "open" |> sm -> handle_open ()*)
     else       
-        lprint "unrecognized command"
+        lprint "unrecognized command\n"
 
   let process_msg cht =
     lread () >>= fun inpt ->
@@ -385,11 +413,19 @@ module MakeInterface (Quester : Api.Requester) = struct
       | "\\r" -> refresh_messages cht
       | s -> handle_send_message cht s
 
-  let process_game g = 
-    lread () >>= function 
-    | "\\board" -> display_game_st g.last_state
-    | "\\help" -> lprint "\\board to display the current board\n"
-    | _ -> lprint "unrecognized command\n"  
+  let process_game g' = 
+    lread () >>= fun inpt ->
+    let g = match !current_state.mode with Ingame gm -> gm in  
+    if "\\\\fill \\(.*\\)" |> str_mtch inpt then 
+      handle_fill g inpt
+    else 
+      match inpt with  
+      | "\\board" -> 
+        (*let st = match !current_state.mode with Ingame g -> g.last_state
+        in*) display_game_st g.last_state
+      | "\\exit" -> handle_exit_game () 
+      | "\\help" -> lprint "\\board to display the current board\n"
+      | _ -> lprint "unrecognized command\n"  
 
   let process_input () = 
     match !current_state.mode with

@@ -2,7 +2,7 @@ open Core.Std
 
 type id = string [@@deriving sexp]
 
-type square = N | X | O [@@deriving sexp]
+type square = N | X | O | Init [@@deriving sexp]
 
 type chatroom =
   {
@@ -52,6 +52,7 @@ type request =
   | Newgame of gameroom 
   | Listgames of id 
   | Getgame of id * string 
+  | Changegamest of id * gameroom * int
   | AddToRoom of id * id * string 
   | LeaveRoom of id * string [@@deriving sexp]
 
