@@ -100,13 +100,7 @@ let hide_password () =
     | Fail b -> print_string "Create Password: " ; let pswd1 = hide_password ()in 
           if (String.length pswd1 >=4) then 
             (print_string "Confirm Password: " ; let pswd2 = hide_password () in 
-            if pswd1=pswd2 then (Quester.register id pswd2 >|= fun succ ->
-              (if succ=Success then
-                current_state := {
-                mode = General;
-                info = { username = id };
-                status = []
-                }); succ)
+            if pswd1=pswd2 then Quester.register id pswd2       
             else (lprint "Passwords not matching!\n") >>= fun _ ->handle_register () )
           else (lprint "Password should be at least 4 characters\n") >>= fun _ ->handle_register () 
     | Success  ->(lprint "This id is already registered to another client\n") >>= fun _ ->handle_register () 
@@ -135,7 +129,7 @@ let hide_password () =
    *with proper formatting*)
   let display_game_st st = 
     let string_of_square sq = match sq with 
-    | N -> "_"e
+    | N -> "_"
     | X -> "X"
     | O -> "O"
     in let format = ref 0 in 
