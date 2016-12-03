@@ -2,9 +2,8 @@
 type id = string
 
 (*square is a type representing the state of a tic-tac-toe square
- *N represents an empty square; Init represents the initialization
- *of the board when a user first enters a game*)
-type square = N | X | O | Init
+ *N represents an empty square*)
+type square = N | X | O 
 
 type chatroom =
   {
@@ -63,7 +62,9 @@ type request =
   | Newgame of gameroom 
   | Listgames of id 
   | Getgame of id * string 
+  | Getwl of id 
   | Changegamest of id * gameroom * int
+  | Resetgame of id * gameroom 
   | AddToRoom of id * id * string 
   | LeaveRoom of id * string [@@deriving sexp]
 
@@ -73,6 +74,7 @@ type resp =
   | Messages of msg list
   | Chatrooms of chatroom list
   | Users of id list 
+  | Wl of int * int 
   | Gamerooms of gameroom list 
   | Gamestate of gameroom * square list 
   | Nothing [@@deriving sexp] 
@@ -88,3 +90,4 @@ val req_from_string : string -> request
 
 val resp_from_string : string -> response
 
+val check_victory : square list -> square -> bool

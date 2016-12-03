@@ -4,6 +4,7 @@ open Type_info
 type user_info = {
   username: id; 
   password: id; 
+  mutable wl: (int*int);
   mutable blocked: string list; (* 
   mutable rooms: chatroom list;
   oc: Lwt_io.output_channel; *)
@@ -11,8 +12,7 @@ type user_info = {
 
 let (clients : (id, user_info) Hashtbl.t) = Hashtbl.create 100
 let (rooms : (string, chatroom * msg list) Hashtbl.t) = Hashtbl.create 100
-let (games : (string, gameroom * square list) Hashtbl.t) = 
-  Hashtbl.create 100 
+let (games : (string, gameroom * square list) Hashtbl.t) = Hashtbl.create 100 
 
 
 (***************************************************)
@@ -40,6 +40,7 @@ let handle_reg id pswd oc =
   let info = { 
       username = id;
       password = pswd;
+      wl = (0,0);
       blocked = [];(* 
       rooms = [];
       oc = oc *)
@@ -248,15 +249,42 @@ let rec replace_nth lst n x = match lst with
             else h::(replace_nth t (n-1) x)
   | [] -> failwith "failure in replace_nth"
 
+(*[update_wl wid lid] updates the win loss ratios of the winner [wid]
+ *and loser [lid]*)
+let update_wl wid lid = 
+  let wui = Hashtbl.find clients wid in 
+  let lui = Hashtbl.find clients lid in 
+  let w,l' = wui.wl in 
+  let w',l = lui.wl in 
+  wui.wl <- (w+1,l') ;
+  lui.wl <- (w',l+1)
+
+let get_wl id =
+  if Hashtbl.mem clients id
+    then let (w,l) = (Hashtbl.find clients id).wl in  
+    (Wl (w,l), Success)
+  else (Nothing, Fail "Invalid user")  
+
 let change_game_st id gr sq_num = 
   let st = Hashtbl.find games gr.name |> snd in 
   let p1::p2::[] = gr.players in 
   let xo = if id=p1 then X else if id=p2 then O else N in 
   if xo=N then (Nothing, Fail "Invalid player in game\n") 
-  else try 
-  (Hashtbl.replace games gr.name (gr, replace_nth st sq_num xo) ;
-  (Nothing, Success)) 
+  else try
+    let st' = replace_nth st sq_num xo in 
+    (Hashtbl.replace games gr.name (gr, st') ;
+    (if check_victory st' X then update_wl p1 p2   
+    else if check_victory st' O then update_wl p2 p1 
+    else ()) ;  
+    (Nothing, Success)) 
   with Failure "invalid move" -> (Nothing, Fail "Invalid move\n")
+
+let reset_game id gr = 
+  let empty = [N;N;N;N;N;N;N;N;N] in 
+  if List.mem id gr.players then 
+    (Hashtbl.replace games gr.name (gr,empty) ;
+    (Nothing, Success))
+  else (Nothing, Fail "Invalid player in game\n")
 
 let add_to_room u t crname =
   crname |>?? fun _ ->
@@ -303,8 +331,10 @@ let handle_request req oc =
   | Listusers -> get_users ()
   | Newgame gr -> post_game gr
   | Listgames id -> get_games id 
+  | Getwl id -> get_wl id 
   | Getgame (id, grname) -> handle_get_game id grname
   | Changegamest (id, gr, st) -> change_game_st id gr st  
+  | Resetgame (id,gr) -> reset_game id gr 
   | AddToRoom (user, target, crname) -> add_to_room user target crname
   | LeaveRoom (user, crname) -> leave_room user crname
 

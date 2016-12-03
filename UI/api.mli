@@ -54,6 +54,10 @@ module type Requester = sig
   val leave_room : id -> string -> success Lwt.t
 
   val fill_board : id -> Type_info.gameroom -> int -> success Lwt.t
+
+  val reset_board : id -> Type_info.gameroom -> success Lwt.t 
+
+  val getwl : id -> (int*int) Lwt.t 
 end
 
 module type RequesterMaker =
