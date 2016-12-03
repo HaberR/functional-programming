@@ -81,7 +81,7 @@ let check_victory st =
   let rec is_full st = match st with 
     | h::t -> (h=X||h=O) && is_full t 
     | [] -> true 
-  in try match st with 
+  in match st with 
   | [X;X;X;_;_;_;_;_;_] | [_;_;_;X;X;X;_;_;_] | [_;_;_;_;_;_;X;X;X]
   | [X;_;_;X;_;_;X;_;_] | [_;X;_;_;X;_;_;X;_]  | [_;_;X;_;_;X;_;_;X]
   | [X;_;_;_;X;_;_;_;X] | [_;_;X;_;X;_;X;_;_] -> `X 
@@ -89,4 +89,3 @@ let check_victory st =
   | [O;_;_;O;_;_;O;_;_] | [_;O;_;_;O;_;_;O;_]  | [_;_;O;_;_;O;_;_;O]
   | [O;_;_;_;O;_;_;_;O] | [_;_;O;_;O;_;O;_;_] -> `O 
   | _ -> if is_full st then `Draw else `Not 
-  with _ -> failwith "invalid square type for check_victory"
