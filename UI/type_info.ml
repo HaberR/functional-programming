@@ -75,17 +75,18 @@ let resp_to_string resp =
 let resp_from_string s =
   s |> Sexp.of_string |> response_of_sexp
 
-(*[check_victory st sq] checks if [st] is a state where the player 
- *with square type sq has won*)
-let check_victory st sq = 
-  if sq=X then match st with 
+let check_victory st = 
+  (*[is_full st] checks if the board has no empty squares. Used to check
+   *draws*)
+  let rec is_full st = match st with 
+    | h::t -> (h=X||h=O) && is_full t 
+    | [] -> true 
+  in try match st with 
   | [X;X;X;_;_;_;_;_;_] | [_;_;_;X;X;X;_;_;_] | [_;_;_;_;_;_;X;X;X]
   | [X;_;_;X;_;_;X;_;_] | [_;X;_;_;X;_;_;X;_]  | [_;_;X;_;_;X;_;_;X]
-  | [X;_;_;_;X;_;_;_;X] | [_;_;X;_;X;_;X;_;_] -> true 
-  | _ -> false 
-  else if sq=O then match st with   
+  | [X;_;_;_;X;_;_;_;X] | [_;_;X;_;X;_;X;_;_] -> `X 
   | [O;O;O;_;_;_;_;_;_] | [_;_;_;O;O;O;_;_;_] | [_;_;_;_;_;_;O;O;O]
   | [O;_;_;O;_;_;O;_;_] | [_;O;_;_;O;_;_;O;_]  | [_;_;O;_;_;O;_;_;O]
-  | [O;_;_;_;O;_;_;_;O] | [_;_;O;_;O;_;O;_;_] -> true 
-  | _ -> false 
-  else failwith "invalid square type for check_victory"
+  | [O;_;_;_;O;_;_;_;O] | [_;_;O;_;O;_;O;_;_] -> `O 
+  | _ -> if is_full st then `Draw else `Not 
+  with _ -> failwith "invalid square type for check_victory"

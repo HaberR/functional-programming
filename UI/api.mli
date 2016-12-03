@@ -34,20 +34,34 @@ module type Requester = sig
 
   val new_room : id list -> string -> success Lwt.t
 
+  (*[new_game members gname] sends a Newgame request for a new game
+   *with name [gname] and members [members]. Gets Nothing as response*)
   val new_game : id list -> string -> success Lwt.t 
 
+  (*[see_games id] sends a Listgames request with [id] attached and gets back
+   *a Gamerooms response with the list of games the user represented by [id]
+   *is in*)
   val see_games : id -> Type_info.gameroom list Lwt.t 
 
+  (*[get_game id grname] sends a Getgame request and gets back either a
+   *Gamestate response if the user is a player in the game or Nothing if not.*)
   val get_game : id -> string -> ((Type_info.gameroom * Type_info.square list) * success) Lwt.t 
 
   val add_user_to_room : id -> id -> string -> success Lwt.t
 
   val leave_room : id -> string -> success Lwt.t
 
+  (*[fill_board id gr sq_num] sends a Changegamest request to change the square
+   *represented by [sq_num] in game [gr] to X or O depending on [id]. Gets
+   *Nothing as a response.*)
   val fill_board : id -> Type_info.gameroom -> int -> success Lwt.t
-
+  
+  (*[reset_board id gr] sends a Resetgame request to reset the game [gr] 
+   *Gets Nothing as a response.*)
   val reset_board : id -> Type_info.gameroom -> success Lwt.t 
-
+  
+  (*[getwl id] sends a Getwl request for the user represented by [id]. Gets
+   *Wl as a response containing the win-loss information.*)
   val getwl : id -> (int*int) Lwt.t 
 end
 
