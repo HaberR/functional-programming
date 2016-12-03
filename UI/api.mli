@@ -39,9 +39,21 @@ module type Requester = sig
 
   val new_room : id list -> string -> success Lwt.t
 
+  val new_game : id list -> string -> success Lwt.t 
+
+  val see_games : id -> Type_info.gameroom list Lwt.t 
+
+  val get_game : id -> string -> ((Type_info.gameroom * Type_info.square list) * success) Lwt.t 
+
   val add_user_to_room : id -> id -> string -> success Lwt.t
 
   val leave_room : id -> string -> success Lwt.t
+
+  val fill_board : id -> Type_info.gameroom -> int -> success Lwt.t
+
+  val reset_board : id -> Type_info.gameroom -> success Lwt.t 
+
+  val getwl : id -> (int*int) Lwt.t 
 end
 
 module type RequesterMaker =

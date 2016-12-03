@@ -1,9 +1,8 @@
 open Api
-open Type_info
+open Type_info 
 open Lwt
 open Str
 
-module T = ANSITerminal
 (* The backbone of the client side. This should
  * have (and make available) all the information
  * that a UI would need to display the current state *)
@@ -15,11 +14,18 @@ module MakeInterface (Quester : Api.Requester) = struct
     last : Type_info.msg option;
   }
 
+  (*represents the game info the client has. last_state is
+   *the client's current knowledge of what the board looks like*)
+  type game = {
+    gr : Type_info.gameroom ;
+    last_state : Type_info.square list ;
+  }  
+
   type information = {
     username : id
   }
 
-  type md = Inchat of chat | General
+  type md = Inchat of chat | Ingame of game | General
 
   type state = {
     mode : md;
@@ -37,6 +43,22 @@ module MakeInterface (Quester : Api.Requester) = struct
     mode = General;
     info = { username = "nothing"};
   })
+ 
+  let log_on identifier = 
+    Quester.login identifier >|= fun succ ->
+      (if succ=Success then
+        current_state := {
+        mode = General;
+        info = { username = identifier };
+        }); succ
+  
+  (*[set_game game] updates the current_state with [game]*)
+  let set_game game = 
+    current_state := {
+      mode = Ingame game ;
+      info = !current_state.info ;
+    }
+  (************ end init stuff ***********************)
 
   let lread () =
     Lwt_io.read_line Lwt_io.stdin
@@ -50,29 +72,35 @@ module MakeInterface (Quester : Api.Requester) = struct
   let message_prompt () =
     lprint "\n"
 
+let hide_password () =
+  let with_echo = Unix.tcgetattr Unix.stdin in
+  let no_echo = { with_echo with Unix.c_echo = false } in
+  Unix.tcsetattr Unix.stdin Unix.TCSANOW no_echo;
+  try
+    let pswd = read_line ()  in
+    print_newline ();
+    Unix.tcsetattr Unix.stdin Unix.TCSAFLUSH with_echo;
+    pswd
+  with e ->
+    Unix.tcsetattr Unix.stdin Unix.TCSAFLUSH with_echo;
+    raise e
+
   let rec handle_register () = 
     lprint "Choose your id: " >>= command_prompt>>= 
-    lread >>= fun id -> Quester.login id >>= function
-    | Fail b -> lprint "Create Password: " >>=
-          command_prompt>>= lread>>= fun pswd1 -> 
-          if (String.length pswd1 >=4) then 
-            lprint "Confirm Password: " >>= 
-            command_prompt>>=lread>>= fun pswd2 ->
-            if pswd1=pswd2 then Quester.register id pswd2 >|= fun succ ->
-              (if succ=Success then
-                current_state := {
-                mode = General;
-                info = { username = id };
-                }); succ
-            else (lprint "Passwords not matching\n") >>= fun _ ->handle_register ()
-          else lprint "Password should be at least 4 characters\n" >>= fun _ -> handle_register () 
-    | Success  ->(lprint "This id is already registered to another client\n") >>= fun _ -> handle_register () 
-
-  let log_on identifier =
-      Quester.login identifier >|= fun succ -> succ
+    lread >>= fun id -> if String.contains id ' ' then
+      lprint "id should not contain spaces!\n" >>= fun _ ->handle_register () 
+    else
+      Quester.login id >>= function
+      | Fail b -> print_string "Create Password: " ; let pswd1 = hide_password ()in 
+            if (String.length pswd1 >=4) then 
+              (print_string "Confirm Password: " ; let pswd2 = hide_password () in 
+              if pswd1=pswd2 then Quester.register id pswd2       
+              else (lprint "Passwords not matching!\n") >>= fun _ ->handle_register () )
+            else (lprint "Password should be at least 4 characters\n") >>= fun _ ->handle_register () 
+      | Success  ->(lprint "This id is already registered to another client\n") >>= fun _ ->handle_register () 
 
   let auth_pswd pswd identifier = 
-      Quester.auth pswd identifier >|= fun succ -> succ
+      Quester.auth pswd identifier
       
 (************ end init stuff ***********************)
 
@@ -84,6 +112,30 @@ module MakeInterface (Quester : Api.Requester) = struct
     let x, y = T.pos_cursor () in
     T.print_string lst txt;
     T.set_cursor x y*)
+  
+  (*[display_game_st st] prints the board represented by the state st
+   *with proper formatting*)
+  let display_game_st st = 
+    if List.length st <> 9 then failwith "invalid state to display"
+    else let string_of_square sq = match sq with 
+    | N -> "_"
+    | X -> "X"
+    | O -> "O"
+    (*format is a formatting variable to make sure the board is printed nicely*)
+    in let format = ref 0 in 
+    let rec p st' = match st' with 
+    | h::t -> if !format = 2 then 
+      (format := 0 ; 
+      lprint (string_of_square h) >>= fun _ ->
+      lprint "\n" >>= fun _ -> p t) 
+      else (incr format ; lprint (string_of_square h) >>= fun _ ->
+      lprint " " >>= fun _ -> p t) 
+    | [] ->  if check_victory st X 
+              then lprint "Player X has won! Use \\reset to clear the board and play again.\n\n"
+             else if check_victory st O 
+              then lprint "Player O has won! Use \\reset to clear the board and play again.\n\n"
+             else lprint "\n\n" 
+    in p st 
 
   (* Displays an arbitrary list with an arbitrary
    * print function. No requirement on type of
@@ -112,7 +164,23 @@ module MakeInterface (Quester : Api.Requester) = struct
     Quester.new_room lst' rmname >>= function
     | Success -> return ()
     | Fail s -> lprint s
-
+  
+  (*[handle_new_game ()] is called when a user tries to create a new
+   *game. Prompts for the game name and players. Does not proceed if 
+   *the number of players provided is invalid. The user is automatically
+   *a player by default but may specify himself with no consequence*)
+  let handle_new_game () = 
+    lprint "game name: " >>= command_prompt >>=
+    lread >>= fun gname ->
+    lprint "players: " >>= command_prompt >>=
+    lread >>= fun players ->
+    let plist = players |> Str.split (Str.regexp " ") in 
+    (*automatically make the user a player*)
+    let plist' = !current_state.info.username :: plist |> List.sort_uniq compare in 
+    if List.length plist' <> 2 then lprint "invalid number of players"
+    else Quester.new_game plist' gname >>= function 
+    | Success -> return () 
+    | Fail s -> lprint s   
 
   let handle_ls_users () =
     Quester.see_users () >>= fun ulst -> 
@@ -128,8 +196,23 @@ module MakeInterface (Quester : Api.Requester) = struct
     let disp_all lst =
       display_list disp_rm lst in
     clst |> disp_all 
-
   
+  (*[handle_ls_games ()] is called when the user tries to list the
+   *games they are in. Displays the games and players in a nice way*)
+  let handle_ls_games () = 
+    Quester.see_games !current_state.info.username >>= fun glst ->
+    let disp_gm ({name = n ; players = p} : Type_info.gameroom) =
+      display_title_list n p in 
+    let disp_all lst = 
+      display_list disp_gm lst in 
+    glst |> disp_all 
+  
+  (*[handle_getwl ()] is called when the user tries to get their win-loss.
+   *prints it out as: W-L*)
+  let handle_getwl () = 
+    Quester.getwl !current_state.info.username >>= fun (w,l) ->
+    lprint ((string_of_int w)^"-"^(string_of_int l))
+
   let handle_exit_room () = 
     let uid = !current_state.info.username in
     (current_state := {
@@ -150,11 +233,18 @@ module MakeInterface (Quester : Api.Requester) = struct
    * most recent message and the whole list is invalid*)
   let check_response_validity old_last =
     match !current_state.mode with
-    | General -> false
+    | General | Ingame _ -> false
     | Inchat x -> match x.last, old_last with
       | (None, None) -> true
       | (Some a, Some b) -> a = b
       | _ -> false
+  
+  (*[check_game_state serv_state last_state] compares [serv_state] and
+   *[last_state] to see if they are equal*)
+  let check_game_state serv_state last_state = 
+    match !current_state.mode with 
+    | General | Inchat _ -> false 
+    | Ingame _ -> last_state = serv_state 
 
   let rec last_elem old lst = 
     match lst with
@@ -184,11 +274,28 @@ module MakeInterface (Quester : Api.Requester) = struct
         return (current_state := {!current_state with mode = mode'})
     | Fail b -> lprint b
 
+  (*[refresh_game game] makes sure the client's version of the game is 
+   *always up to date with the server's version*)
+  let refresh_game {gr = g ; last_state = last} =
+    let uid = !current_state.info.username in 
+    Quester.get_game uid g.name >>= fun (gr_st,_) ->
+    let st = snd gr_st in 
+    (*do nothing if game is up to date or user is no longer in the game*)
+    if check_game_state st last || !current_state.mode = General then 
+      return () 
+    (*if server version is different update the current state to match*)
+    else
+      (set_game {gr=g; last_state=st} ; 
+      display_game_st st)
+
+  let mut = Lwt_mutex.create()
+
   let fork_refresh () =
     Lwt.async (fun () ->
       let rec loop () =
         match !current_state.mode with
         | Inchat x -> refresh_messages x >>= loop
+        | Ingame x -> refresh_game x >>= loop 
         | General -> return () in 
       loop ()
     ); return ()
@@ -204,7 +311,53 @@ module MakeInterface (Quester : Api.Requester) = struct
         cr = crm
       };
       info = {username = uid};
-    }; lprint ("entered " ^ crm.name ^ "\n") >>= fork_refresh
+      }; lprint ("entered " ^ crm.name ^ "\n") >>= fork_refresh
+    | Fail s -> lprint s
+
+  (*[handle_enter_game s] is called when a user tries to enter a game with
+   *the command [s]. Updates the current_state accordingly with a dummy board
+   *so it will always display the correct current board upon entering*)
+  let handle_enter_game s = 
+    (*extracts the game name from [s]*)
+    let nm = Str.matched_group 1 s in 
+    let uid = !current_state.info.username in 
+    Quester.get_game uid nm >>= fun (((grm : Type_info.gameroom),_), succ) ->
+    match succ with 
+    | Success -> 
+      (set_game {gr=grm;last_state=[]} ; 
+      lprint ("entered " ^ grm.name ^ "\n") >>= fork_refresh)
+    | Fail s -> lprint s 
+
+  (*[handle_exit_game ()] is called when a user tries to exit a game they are 
+   *in. Updates the current state accordingly*)
+  let handle_exit_game () = 
+    let uid = !current_state.info.username in
+    (current_state := {
+      mode = General;
+      info = {username = uid};
+    }) |> return
+
+  (*[handle_fill game inpt] handles trying to fill a square in 
+   *the game [game]*)
+  let handle_fill {gr = g ; last_state = st} inpt = 
+    let uid = !current_state.info.username in 
+    let sq_num = try Str.matched_group 1 inpt |> int_of_string 
+                 with _ -> -1 
+    in
+    if sq_num < 0 || sq_num >= List.length st 
+    then lprint "invalid square number\n\n"
+    else  
+      (*(current_state := {!current_state with mode = Ingame {gr=g;last_state=st}} ;*)
+      (set_game {gr=g;last_state=st} ; 
+      Quester.fill_board uid g sq_num >>= function 
+      | Success -> return () 
+      | Fail s -> lprint s)
+
+  (*[handle_reset g] handles resetting the game g*)
+  let handle_reset g = 
+    let uid = !current_state.info.username in 
+    Quester.reset_board uid g.gr >>= function 
+    | Success -> return ()
     | Fail s -> lprint s
 
   let handle_leave_room s =
@@ -254,15 +407,19 @@ module MakeInterface (Quester : Api.Requester) = struct
     if      "^ls users" |> sm then handle_ls_users ()
     else if "^ls rooms" |> sm then handle_ls_rooms ()
     else if "^new room" |> sm then handle_new_room ()
+    else if "^new game" |> sm then handle_new_game () 
+    else if "^ls games" |> sm then handle_ls_games () 
+    else if "^get wl" |> sm then handle_getwl () 
+    else if "^play \\(.*\\)" |> sm then handle_enter_game s 
     else if "^enter \\(.*\\)" |> sm then handle_enter_room s
     else if "^leave \\(.*\\)" |> sm then handle_leave_room s
     else if "^block \\(.*\\)" |> sm then handle_block s
     else if "^unblock \\(.*\\)" |> sm then handle_unblock s
+    else if "^exit" |> sm then let _ = lprint "Goodbye!\n" in return (exit 0) 
     (*else if "^open \\(.*\\)" |> sm then 
     | "open" |> sm -> handle_open ()*)
-    else 
-        (print_string s;
-        failwith "unimplemented")
+    else       
+        lprint "unrecognized command\n"
 
   let process_msg cht =
     lread () >>= fun inpt ->
@@ -274,10 +431,33 @@ module MakeInterface (Quester : Api.Requester) = struct
       | "\\r" -> refresh_messages cht
       | s -> handle_send_message cht s
 
+  (*note: uses unit to make sure the current state has the right state of 
+   *the game. If the game itself is passed in problems arise where the 
+   *client's version of the board isn't updated properly.*)
+  let process_game () = 
+    lread () >>= fun inpt ->
+    let g = match !current_state.mode with Ingame gm -> gm in  
+    if "\\\\fill \\(.*\\)" |> str_mtch inpt then
+      (*does not allow squares to be filled after the game is over*)
+      if check_victory g.last_state X || check_victory g.last_state O 
+        then lprint "The game is over!\n\n"
+      else handle_fill g inpt
+    else 
+      match inpt with  
+      | "\\reset" -> 
+        (*does not allow resetting a game that is in progress*)
+        if check_victory g.last_state X || check_victory g.last_state O 
+          then handle_reset g 
+        else lprint "The game isn't over yet!\n\n"          
+      | "\\exit" -> handle_exit_game () 
+      | "\\help" -> lprint ("\\exit to exit the game\n\\fill to fill a specified square. " ^
+              "Squares are numbered as follows:\n0 1 2\n3 4 5\n6 7 8\n\n")
+      | _ -> lprint "unrecognized command\n\n"  
 
   let process_input () = 
     match !current_state.mode with
     | Inchat cht -> process_msg cht
+    | Ingame _ -> process_game () 
     | General -> process_command ()
     (*let cmd_re = Str.regexp "\\(^\\\\[a-zA-Z]+\\).*" in
     if Str.string_match cmd_re input 0 then
@@ -297,16 +477,14 @@ module MakeInterface (Quester : Api.Requester) = struct
     command_prompt >>= fun _ ->
     Lwt_io.read_line Lwt_io.stdin >>= fun id ->
     if "^[Nn]" |> str_mtch id then handle_register ()>>=fun _->run()
-
     else
       log_on id >>= fun succ ->
         if succ=Success then 
-          lprint "\nPassword:" >>= fun _ ->
-          Lwt_io.read_line Lwt_io.stdin >>= fun pswd->
+          (print_string "\nPassword: "; let pswd = hide_password () in
           auth_pswd id pswd >>= fun succ2 ->
             if succ2=Success then
               repl ()
-            else lprint "Wrong Password \n" >>= fun _ -> run()
+            else lprint "Wrong Password \n" >>= fun _ -> run() )
         else lprint "This id is not recognized\n"  >>= fun _ -> run ()
 
   let bad_server_msg =
