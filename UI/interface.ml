@@ -302,9 +302,6 @@ let hide_password () =
       return () 
     (*if server version is different update the current state to match*)
     else
-      (*let mode' = Ingame {gr=g; last_state=st} in 
-      (current_state := {!current_state with mode = mode'} ;
-      display_game_st st)*)
       (set_game {gr=g; last_state=st} ; 
       display_game_st st)
 
@@ -344,14 +341,7 @@ let hide_password () =
     let uid = !current_state.info.username in 
     Quester.get_game uid nm >>= fun (((grm : Type_info.gameroom),_), succ) ->
     match succ with 
-    | Success -> (*current_state := {
-      mode = Ingame {
-        gr = grm ;
-        last_state = []  
-      } ; 
-      info = {username = uid} ;
-      status = !current_state.status
-      } ;*) 
+    | Success -> 
       (set_game {gr=grm;last_state=[]} ; 
       lprint ("entered " ^ grm.name ^ "\n") >>= fork_refresh)
     | Fail s -> lprint s 
