@@ -109,7 +109,7 @@ module MakeInterface (Quester : Api.Requester) = struct
   (* Displays a list with a title. Requires
    * that list elements be strings *)
   let display_title_list title lst =
-    lprint title >>= fun _ ->
+    lprint (title^"\n") >>= fun _ ->
     let lst' = lst |> List.map ((^) "\t") in
     display_list lprint lst'
   
@@ -320,7 +320,13 @@ module MakeInterface (Quester : Api.Requester) = struct
             else lprint "Wrong Password \n" >>= fun _ -> run()
         else lprint "This id is not recognized\n"  >>= fun _ -> run ()
 
-  let _ = run () |> Lwt_main.run
+  let bad_server_msg =
+    "Failed to connect to the server"
+  let _ = 
+    try run () |> Lwt_main.run with
+    | Unix.Unix_error _ -> print_endline bad_server_msg; exit 0
+    | _ -> print_endline "Unknown error."; exit 0
+
 
 end
 

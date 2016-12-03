@@ -59,14 +59,16 @@ module type RequesterMaker =
 module MakeRequester (Cl : Client) = struct
 
   let send_req =  
-    let h, p =
-      if Array.length Sys.argv > 2 then (Sys.argv.(1), Sys.argv.(2))
-      else ("localhost", "3110") in
-    Lwt.async (fun () -> 
-      let s = "connected to " ^ h ^ " at port " ^ p in
-      Lwt_io.write_line Lwt_io.stdout s); 
-    let sender = Cl.init h (int_of_string p) in
-    (fun req -> sender >>= fun s -> s req)
+    try
+      let open Client_args in
+      let {host = h; port = p} = Client_args.obj () in
+      Lwt.async (fun () -> 
+        let s = "connecting to " ^ h ^ " at port " ^ p in
+        Lwt_io.write_line Lwt_io.stdout s); 
+      let sender = Cl.init h (int_of_string p) in
+      (fun req -> sender >>= fun s -> s req)
+    with
+    | Failure s -> print_endline s; exit 1
 
   (* A wrapper for response handling that raises a useless
    * error if the request was unsuccessful *)
