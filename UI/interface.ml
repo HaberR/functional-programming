@@ -45,7 +45,7 @@ module MakeInterface (Quester : Api.Requester) = struct
     info = { username = "nothing"};
     status = []
   })
-
+ 
   let log_on identifier = 
     Quester.login identifier >|= fun succ ->
       (if succ=Success then
@@ -54,7 +54,6 @@ module MakeInterface (Quester : Api.Requester) = struct
         info = { username = identifier };
         status = []
         }); succ
-
   let set_chat cr_and_last = 
     current_state := {
       mode = Inchat cr_and_last;
@@ -112,11 +111,8 @@ let hide_password () =
           else (lprint "Password should be at least 4 characters\n") >>= fun _ ->handle_register () 
     | Success  ->(lprint "This id is already registered to another client\n") >>= fun _ ->handle_register () 
 
-  let log_on identifier =
-      Quester.login identifier >|= fun succ -> succ
-
   let auth_pswd pswd identifier = 
-      Quester.auth pswd identifier >|= fun succ -> succ
+      Quester.auth pswd identifier
       
   let set_chat cr_and_last = 
     current_state := {
@@ -139,7 +135,7 @@ let hide_password () =
    *with proper formatting*)
   let display_game_st st = 
     let string_of_square sq = match sq with 
-    | N -> "_"
+    | N -> "_"e
     | X -> "X"
     | O -> "O"
     in let format = ref 0 in 
