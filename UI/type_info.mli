@@ -90,4 +90,7 @@ val req_from_string : string -> request
 
 val resp_from_string : string -> response
 
-val check_victory : square list -> square -> bool
+(*[check_victory st] checks if [st] is a state where a player
+ *has won or the game is a draw. Returns a polymorphic variant
+ *representing the different possible outcomes*)
+val check_victory : square list -> [> `X | `O | `Draw | `Not]

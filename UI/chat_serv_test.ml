@@ -301,8 +301,8 @@ let change_game_st id gr sq_num =
     if Some id <> lt || lt = None then  
       let st' = replace_nth st sq_num xo in 
       (Hashtbl.replace games gr.name {gr=gr;board=st';last_turn=Some id} ;
-      (if check_victory st' X then update_wl p1 p2   
-      else if check_victory st' O then update_wl p2 p1 
+      (if check_victory st' = `X then update_wl p1 p2   
+      else if check_victory st' = `O then update_wl p2 p1 
       else ()) ;  
       (Nothing, Success)) 
     else (Nothing, Fail "It's not your turn\n\n")

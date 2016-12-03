@@ -1,6 +1,5 @@
 open Type_info
 open Lwt
-(*open Dummy_client*)
 
 (* This module is nothing more
  * than a utility module for communicating 
@@ -14,15 +13,6 @@ exception ClientError
 
 module type Client = sig
 
-
-  (* [init host port] will ultimately yield a
-   * function for making requests. Because of the
-   * nature of the Unix library, the first deferred
-   * evaluates when the connection is accepted, and the
-   * second is evaluated at every subsequent response.
-   * Thus, every call to init will open a new connection
-   * with the server. What this means is that init should
-   * be used with care*)
   val init : string -> int -> (request -> response Lwt.t) Lwt.t
 
 end
@@ -165,17 +155,12 @@ module MakeRequester (Cl : Client) = struct
     } in
     send_req req >|= snd
   
-  (*[new_game members gname] sends a Newgame request for a new game
-   *with name [gname] and members [members]. Gets Nothing as response*)
   let new_game members gname = 
     let req = Newgame {
       name = gname ;
       players = members }
     in send_req req >|= snd 
   
-  (*[see_games id] sends a Listgames request with [id] attached and gets back
-   *a Gamerooms response with the list of games the user represented by [id]
-   *is in*)
   let see_games id = 
     let req = Listgames id in
     let f = function
@@ -183,8 +168,6 @@ module MakeRequester (Cl : Client) = struct
     | _ -> raise ClientError 
     in send_req req >|= (handle_response f)
 
-  (*[get_game id grname] sends a Getgame request and gets back either a
-   *Gamestate response if the user is a player in the game or Nothing if not.*)
   let get_game id grname =
     let req = Getgame (id, grname) in
     let f = function
@@ -194,21 +177,14 @@ module MakeRequester (Cl : Client) = struct
     in 
     send_req req >|= f
 
-  (*[fill_board id gr sq_num] sends a Changegamest request to change the square
-   *represented by [sq_num] in game [gr] to X or O depending on [id]. Gets
-   *Nothing as a response.*)
   let fill_board id gr sq_num = 
     let req = Changegamest (id, gr, sq_num) in 
     send_req req >|= snd 
 
-  (*[reset_board id gr] sends a Resetgame request to reset the game [gr] 
-   *Gets Nothing as a response.*)
   let reset_board id gr = 
     let req = Resetgame (id,gr) in 
     send_req req >|= snd 
 
-  (*[getwl id] sends a Getwl request for the user represented by [id]. Gets
-   *Wl as a response containing the win-loss information.*)
   let getwl id = 
     let req = Getwl id in 
     let f = function 

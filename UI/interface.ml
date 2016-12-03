@@ -129,10 +129,12 @@ let hide_password () =
       lprint "\n" >>= fun _ -> p t) 
       else (incr format ; lprint (string_of_square h) >>= fun _ ->
       lprint " " >>= fun _ -> p t) 
-    | [] ->  if check_victory st X 
+    | [] ->  if check_victory st = `X 
               then lprint "Player X has won! Use \\reset to clear the board and play again.\n\n"
-             else if check_victory st O 
+             else if check_victory st = `O
               then lprint "Player O has won! Use \\reset to clear the board and play again.\n\n"
+             else if check_victory st = `Draw 
+              then lprint "The game ended in a draw! Use \\reset to clear the board and play again.\n\n"
              else lprint "\n\n" 
     in p st 
 
@@ -438,18 +440,18 @@ let hide_password () =
     let g = match !current_state.mode with Ingame gm -> gm in  
     if "\\\\fill \\(.*\\)" |> str_mtch inpt then
       (*does not allow squares to be filled after the game is over*)
-      if check_victory g.last_state X || check_victory g.last_state O 
+      if check_victory g.last_state <> `Not 
         then lprint "The game is over!\n\n"
       else handle_fill g inpt
     else 
       match inpt with  
       | "\\reset" -> 
         (*does not allow resetting a game that is in progress*)
-        if check_victory g.last_state X || check_victory g.last_state O 
+        if check_victory g.last_state <> `Not 
           then handle_reset g 
         else lprint "The game isn't over yet!\n\n"          
       | "\\exit" -> handle_exit_game () 
-      | "\\help" -> lprint ("\\exit to exit the game\n\\fill to fill a specified square. " ^
+      | "\\help" -> lprint ("\\exit to exit the game\n\\fill <num> to fill the specified square. " ^
               "Squares are numbered as follows:\n0 1 2\n3 4 5\n6 7 8\n\n")
       | _ -> lprint "unrecognized command\n\n"  
 
