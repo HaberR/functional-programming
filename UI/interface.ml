@@ -21,12 +21,9 @@ module MakeInterface (Quester : Api.Requester) = struct
 
   type md = Inchat of chat | General
 
-  type cmnd_status = (string * success) list
-
   type state = {
     mode : md;
     info : information;
-    status : cmnd_status
   }
 
   type t = state ref
@@ -39,7 +36,6 @@ module MakeInterface (Quester : Api.Requester) = struct
   let current_state = ref ( {
     mode = General;
     info = { username = "nothing"};
-    status = []
   })
 
   let lread () =
@@ -67,7 +63,6 @@ module MakeInterface (Quester : Api.Requester) = struct
                 current_state := {
                 mode = General;
                 info = { username = id };
-                status = []
                 }); succ
             else (lprint "Passwords not matching\n") >>= fun _ ->handle_register ()
           else lprint "Password should be at least 4 characters\n" >>= fun _ -> handle_register () 
@@ -79,13 +74,7 @@ module MakeInterface (Quester : Api.Requester) = struct
   let auth_pswd pswd identifier = 
       Quester.auth pswd identifier >|= fun succ -> succ
       
-  let set_chat cr_and_last = 
-    current_state := {
-      mode = Inchat cr_and_last;
-      info = !current_state.info;
-      status = !current_state.status;
-    }
-  (************ end init stuff ***********************)
+(************ end init stuff ***********************)
 
   (* Displays the prompt for login *)
   let login_prompt () = 
@@ -146,7 +135,6 @@ module MakeInterface (Quester : Api.Requester) = struct
     (current_state := {
       mode = General;
       info = {username = uid};
-      status = !current_state.status
     }) |> return
 
   let print_message usr msg = 
@@ -191,7 +179,9 @@ module MakeInterface (Quester : Api.Requester) = struct
     let uid = !current_state.info.username in
     Quester.send_message uid c s >>= fun (msg, succ) ->
     match succ with
-    | Success -> set_chat {last = Some msg; cr = c}; return ()
+    | Success -> 
+        let mode' = Inchat {last = Some msg; cr = c} in
+        return (current_state := {!current_state with mode = mode'})
     | Fail b -> lprint b
 
   let fork_refresh () =
@@ -214,7 +204,6 @@ module MakeInterface (Quester : Api.Requester) = struct
         cr = crm
       };
       info = {username = uid};
-      status = !current_state.status
     }; lprint ("entered " ^ crm.name ^ "\n") >>= fork_refresh
     | Fail s -> lprint s
 
