@@ -96,14 +96,17 @@ let hide_password () =
 
   let rec handle_register () = 
     lprint "Choose your id: " >>= command_prompt>>= 
-    lread >>= fun id -> Quester.login id >>= function
-    | Fail b -> print_string "Create Password: " ; let pswd1 = hide_password ()in 
-          if (String.length pswd1 >=4) then 
-            (print_string "Confirm Password: " ; let pswd2 = hide_password () in 
-            if pswd1=pswd2 then Quester.register id pswd2       
-            else (lprint "Passwords not matching!\n") >>= fun _ ->handle_register () )
-          else (lprint "Password should be at least 4 characters\n") >>= fun _ ->handle_register () 
-    | Success  ->(lprint "This id is already registered to another client\n") >>= fun _ ->handle_register () 
+    lread >>= fun id -> if String.contains id ' ' then
+      lprint "id should not contain spaces!\n" >>= fun _ ->handle_register () 
+    else
+      Quester.login id >>= function
+      | Fail b -> print_string "Create Password: " ; let pswd1 = hide_password ()in 
+            if (String.length pswd1 >=4) then 
+              (print_string "Confirm Password: " ; let pswd2 = hide_password () in 
+              if pswd1=pswd2 then Quester.register id pswd2       
+              else (lprint "Passwords not matching!\n") >>= fun _ ->handle_register () )
+            else (lprint "Password should be at least 4 characters\n") >>= fun _ ->handle_register () 
+      | Success  ->(lprint "This id is already registered to another client\n") >>= fun _ ->handle_register () 
 
   let auth_pswd pswd identifier = 
       Quester.auth pswd identifier
