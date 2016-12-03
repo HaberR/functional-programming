@@ -4,9 +4,7 @@ open Type_info
 type user_info = {
   username: id; 
   password: id; 
-  mutable blocked: string list; (* 
-  mutable rooms: chatroom list;
-  oc: Lwt_io.output_channel; *)
+  mutable blocked: string list;
 }
 
 let (clients : (id, user_info) Hashtbl.t) = Hashtbl.create 100

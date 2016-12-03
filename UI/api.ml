@@ -6,19 +6,24 @@ open Dummy_client
  * than a utility module for communicating 
  * with the server. All it does is takes the
  * necessary information for a request, sends
- * out the request, and returns the deferred
- * response *)
+ * out the request, and returns the useful 
+ * contents of the deferred response  *)
 
 exception ServerError
 exception ClientError
 
 module type Client = sig
 
-  (*val init : unit -> unit*)
 
+  (* [init host port] will ultimately yield a
+   * function for making requests. Because of the
+   * nature of the Unix library, the first deferred
+   * evaluates when the connection is accepted, and the
+   * second is evaluated at every subsequent response.
+   * Thus, every call to init will open a new connection
+   * with the server. What this means is that init should
+   * be used with care*)
   val init : string -> int -> (request -> response Lwt.t) Lwt.t
-
-  (*val send_req : request -> response Lwt.t*)
 
 end
 
@@ -58,6 +63,13 @@ module type RequesterMaker =
 
 module MakeRequester (Cl : Client) = struct
 
+  (*[send_req req] is what the api uses to send
+   * requests. It has to be crafted delicately so
+   * that it doesn't continuously perform Cl.init.
+   * Instead, observe the closure that is created
+   * in order to recycle the value of the one call
+   * to Cl.init. If the program arguments are malformatted
+   * the program exits here. *)
   let send_req =  
     try
       let open Client_args in
@@ -70,8 +82,11 @@ module MakeRequester (Cl : Client) = struct
     with
     | Failure s -> print_endline s; exit 1
 
-  (* A wrapper for response handling that raises a useless
-   * error if the request was unsuccessful *)
+  (* A wrapper for response handling that raises a
+   * vague error if the request was unsuccessful. In
+   * general, this should only be used when there is
+   * no known reason that the request should fail.
+   *)
   let handle_response f (cont, succ) =
     if succ=Success then f cont
     else raise ServerError
