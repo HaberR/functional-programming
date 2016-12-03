@@ -10,9 +10,17 @@ type user_info = {
   oc: Lwt_io.output_channel; *)
 }
 
+type game_info = {
+  gr: gameroom ; 
+  mutable board: square list ;
+  mutable last_turn: id option 
+}
+
 let (clients : (id, user_info) Hashtbl.t) = Hashtbl.create 100
 let (rooms : (string, chatroom * msg list) Hashtbl.t) = Hashtbl.create 100
-let (games : (string, gameroom * square list) Hashtbl.t) = Hashtbl.create 100 
+
+(*Hashtable mapping names of games to their game_infos*)
+let (games : (string, game_info) Hashtbl.t) = Hashtbl.create 100 
 
 
 (***************************************************)
@@ -75,6 +83,10 @@ let check_room cr =
     stringified @ lst in
   List.fold_left fold [] cr.participants
 
+(*[check_game gr] is a list of tuples (x,y) where
+ *(x,y) is in the list iff y is blocked by x
+ *Raises Not_found if a participant is not a registered
+ *user*)
 let check_game gr = 
   let fold lst member =
     let user = Hashtbl.find clients member in
@@ -166,12 +178,14 @@ let post_room (cr : chatroom) =
         (Nothing, Fail "one or more participants is not registered")
   else (Nothing, Fail "room name exists already")
 
+(*[post_game gr] creates a new game room specified by [gr] as long
+ *as the desired name is not already a game and both players are registered*)
 let post_game gr = 
   if Hashtbl.mem games gr.name |> not then 
     try 
       let blocked = check_game gr in 
       if List.length blocked = 0 then 
-        (Hashtbl.add games gr.name (gr, [N;N;N;N;N;N;N;N;N]) ; 
+        (Hashtbl.add games gr.name {gr=gr;board=[N;N;N;N;N;N;N;N;N];last_turn=None} ; 
         (Nothing, Success))
       else 
         let err_msg = blocked |> list_to_string in 
@@ -180,8 +194,10 @@ let post_game gr =
     | Not_found -> (Nothing, Fail "one or more players is not registered")
   else (Nothing, Fail "game name exists already")
 
+(*[get_games id] returns a list of all the games that the user 
+ *specified by [id] is a part of*)
 let get_games id = 
-  let fold _ (gr,_) lst = 
+  let fold _ {gr=gr;board=_;last_turn=_} lst = 
     if List.mem id gr.players then gr :: lst
     else lst in 
   let lst = Hashtbl.fold fold games [] in 
@@ -231,11 +247,14 @@ let get_users () =
   let lst = Hashtbl.fold fold clients [] in
   (Users lst, Success)
 
+(*[handle_get_game id grname] returns a Gamestate response with the 
+ *gameroom and board of the desired game as long as user [id] is a 
+ *valid player in the game and grname is a valid game*)
 let handle_get_game id grname =
   if Hashtbl.mem games grname then 
-    let gr, st = Hashtbl.find games grname in 
-    if List.mem id gr.players then 
-      (Gamestate (gr,st), Success)
+    let g = Hashtbl.find games grname in 
+    if List.mem id g.gr.players then 
+      (Gamestate (g.gr,g.board), Success)
     else (Nothing, Fail "invalid id for this game")
   else (Nothing, Fail "invalid game")
 
@@ -259,32 +278,45 @@ let update_wl wid lid =
   wui.wl <- (w+1,l') ;
   lui.wl <- (w',l+1)
 
+(*[get_wl id] returns a Wl response with the user [id]'s win-loss info
+ *Sends a failure message if the user is invalid*)
 let get_wl id =
   if Hashtbl.mem clients id
     then let (w,l) = (Hashtbl.find clients id).wl in  
     (Wl (w,l), Success)
   else (Nothing, Fail "Invalid user")  
 
+(*[change_game_st id gr sq_num] updates the game board of [gr] at the square
+ *specified by [sq_num] with either X or O depending on [id]. Also makes 
+ *sure that it is [id]'s turn and that the move is a valid one (i.e. it
+ *is a square on the board and the square is not already filled*)
 let change_game_st id gr sq_num = 
-  let st = Hashtbl.find games gr.name |> snd in 
+  let st = (Hashtbl.find games gr.name).board in 
   let p1::p2::[] = gr.players in 
+  (*assigns X or O to each player*)
   let xo = if id=p1 then X else if id=p2 then O else N in 
-  if xo=N then (Nothing, Fail "Invalid player in game\n") 
+  if xo=N then (Nothing, Fail "Invalid player in game\n\n") 
   else try
-    let st' = replace_nth st sq_num xo in 
-    (Hashtbl.replace games gr.name (gr, st') ;
-    (if check_victory st' X then update_wl p1 p2   
-    else if check_victory st' O then update_wl p2 p1 
-    else ()) ;  
-    (Nothing, Success)) 
-  with Failure "invalid move" -> (Nothing, Fail "Invalid move\n")
+    let lt = (Hashtbl.find games gr.name).last_turn in 
+    (*checks it is [id]'s turn or if no moves have been made either player
+     *can make the first move*)
+    if Some id <> lt || lt = None then  
+      let st' = replace_nth st sq_num xo in 
+      (Hashtbl.replace games gr.name {gr=gr;board=st';last_turn=Some id} ;
+      (if check_victory st' X then update_wl p1 p2   
+      else if check_victory st' O then update_wl p2 p1 
+      else ()) ;  
+      (Nothing, Success)) 
+    else (Nothing, Fail "It's not your turn\n\n")
+  with Failure "invalid move" -> (Nothing, Fail "Invalid move\n\n")
 
+(*[reset_game id gr] resets the game [gr] with an empty board and no last_turn*)
 let reset_game id gr = 
   let empty = [N;N;N;N;N;N;N;N;N] in 
   if List.mem id gr.players then 
-    (Hashtbl.replace games gr.name (gr,empty) ;
+    (Hashtbl.replace games gr.name {gr=gr;board=empty;last_turn=None} ;
     (Nothing, Success))
-  else (Nothing, Fail "Invalid player in game\n")
+  else (Nothing, Fail "Invalid player in game\n\n")
 
 let add_to_room u t crname =
   crname |>?? fun _ ->

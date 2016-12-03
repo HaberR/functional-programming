@@ -147,13 +147,18 @@ module MakeRequester (Cl : Client) = struct
       participants = members;
     } in
     send_req req >|= snd
-
+  
+  (*[new_game members gname] sends a Newgame request for a new game
+   *with name [gname] and members [members]. Gets Nothing as response*)
   let new_game members gname = 
     let req = Newgame {
       name = gname ;
       players = members }
     in send_req req >|= snd 
-
+  
+  (*[see_games id] sends a Listgames request with [id] attached and gets back
+   *a Gamerooms response with the list of games the user represented by [id]
+   *is in*)
   let see_games id = 
     let req = Listgames id in
     let f = function
@@ -161,43 +166,38 @@ module MakeRequester (Cl : Client) = struct
     | _ -> raise ClientError 
     in send_req req >|= (handle_response f)
 
-  let get_game identifier grname =
-    let req = Getgame (identifier, grname) in
+  (*[get_game id grname] sends a Getgame request and gets back either a
+   *Gamestate response if the user is a player in the game or Nothing if not.*)
+  let get_game id grname =
+    let req = Getgame (id, grname) in
     let f = function
-      | Gamestate (gr,st) -> (gr,st) 
-      | _ -> raise ClientError in
-    send_req req >|= fun (r, succ) ->
-    (f r, succ) 
+      | (Gamestate (gr,st), Success) -> ((gr,st), Success) 
+      | (_, Success) -> raise ClientError
+      | (_, Fail s) -> (({name="";players=[]},[]),Fail s)
+    in 
+    send_req req >|= f
 
+  (*[fill_board id gr sq_num] sends a Changegamest request to change the square
+   *represented by [sq_num] in game [gr] to X or O depending on [id]. Gets
+   *Nothing as a response.*)
   let fill_board id gr sq_num = 
     let req = Changegamest (id, gr, sq_num) in 
     send_req req >|= snd 
 
+  (*[reset_board id gr] sends a Resetgame request to reset the game [gr] 
+   *Gets Nothing as a response.*)
   let reset_board id gr = 
     let req = Resetgame (id,gr) in 
     send_req req >|= snd 
 
+  (*[getwl id] sends a Getwl request for the user represented by [id]. Gets
+   *Wl as a response containing the win-loss information.*)
   let getwl id = 
     let req = Getwl id in 
     let f = function 
     | Wl (w,l) -> (w,l) 
     | _ -> raise ClientError 
     in send_req req >|= (handle_response f)   
-
-  (*let get_game_room identifier grname =
-    let req = Getgame (identifier, grname) in
-    let f = function
-      | Gamestate (gr,st) -> (gr,st) 
-      | _ -> raise ClientError in
-    send_req req >|= fun (r, succ) ->
-    (f r, succ) *)
-
-  (*let see_game_st id gr = 
-    let f = function
-      | Gamestate st -> st 
-      | _ -> raise ClientError in
-    send_req (Getgamestate (identifier, gr)) >|= 
-    (handle_response f)*)
 
   let add_user_to_room user target crname =
     let req = AddToRoom (user, target, crname) in

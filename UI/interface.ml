@@ -14,10 +14,11 @@ module MakeInterface (Quester : Api.Requester) = struct
     last : Type_info.msg option;
   }
 
+  (*represents the game info the client has. last_state is
+   *the client's current knowledge of what the board looks like*)
   type game = {
     gr : Type_info.gameroom ;
     last_state : Type_info.square list ;
-    my_turn : bool option 
   }  
 
   type information = {
@@ -62,10 +63,11 @@ module MakeInterface (Quester : Api.Requester) = struct
       info = !current_state.info;
       status = !current_state.status;
     }
-
-  let set_game gr_and_last = 
+  
+  (*[set_game game] updates the current_state with [game]*)
+  let set_game game = 
     current_state := {
-      mode = Ingame gr_and_last ;
+      mode = Ingame game ;
       info = !current_state.info ;
       status = !current_state.status
     }
@@ -125,21 +127,6 @@ module MakeInterface (Quester : Api.Requester) = struct
     T.print_string lst txt;
     T.set_cursor x y*)
   
-  (*[check_victory st sq] checks if [st] is a state where the player 
-   *with square type sq has won*)
-  (*let check_victory st sq = 
-    if sq=X then match st with 
-    | [X;X;X;_;_;_;_;_;_] | [_;_;_;X;X;X;_;_;_] | [_;_;_;_;_;_;X;X;X]
-    | [X;_;_;X;_;_;X;_;_] | [_;X;_;_;X;_;_;X;_]  | [_;_;X;_;_;X;_;_;X]
-    | [X;_;_;_;X;_;_;_;X] | [_;_;X;_;X;_;X;_;_] -> true 
-    | _ -> false 
-    else if sq=O then match st with   
-    | [O;O;O;_;_;_;_;_;_] | [_;_;_;O;O;O;_;_;_] | [_;_;_;_;_;_;O;O;O]
-    | [O;_;_;O;_;_;O;_;_] | [_;O;_;_;O;_;_;O;_]  | [_;_;O;_;_;O;_;_;O]
-    | [O;_;_;_;O;_;_;_;O] | [_;_;O;_;O;_;O;_;_] -> true 
-    | _ -> false 
-    else failwith "invalid square type for check_victory"*)
-
   (*[display_game_st st] prints the board represented by the state st
    *with proper formatting*)
   let display_game_st st = 
@@ -148,6 +135,7 @@ module MakeInterface (Quester : Api.Requester) = struct
     | N -> "_"
     | X -> "X"
     | O -> "O"
+    (*format is a formatting variable to make sure the board is printed nicely*)
     in let format = ref 0 in 
     let rec p st' = match st' with 
     | h::t -> if !format = 2 then 
@@ -157,10 +145,10 @@ module MakeInterface (Quester : Api.Requester) = struct
       else (incr format ; lprint (string_of_square h) >>= fun _ ->
       lprint " " >>= fun _ -> p t) 
     | [] ->  if check_victory st X 
-              then lprint "Player X has won! Use \\reset to clear the board and play again.\n"
+              then lprint "Player X has won! Use \\reset to clear the board and play again.\n\n"
              else if check_victory st O 
-              then lprint "Player O has won! Use \\reset to clear the board and play again.\n"
-             else lprint "\n" 
+              then lprint "Player O has won! Use \\reset to clear the board and play again.\n\n"
+             else lprint "\n\n" 
     in p st 
 
   (* Displays an arbitrary list with an arbitrary
@@ -190,18 +178,23 @@ module MakeInterface (Quester : Api.Requester) = struct
     Quester.new_room lst' rmname >>= function
     | Success -> return ()
     | Fail s -> lprint s
-    
+  
+  (*[handle_new_game ()] is called when a user tries to create a new
+   *game. Prompts for the game name and players. Does not proceed if 
+   *the number of players provided is invalid. The user is automatically
+   *a player by default but may specify himself with no consequence*)
   let handle_new_game () = 
     lprint "game name: " >>= command_prompt >>=
     lread >>= fun gname ->
     lprint "players: " >>= command_prompt >>=
     lread >>= fun players ->
     let plist = players |> Str.split (Str.regexp " ") in 
-    if List.length plist <> 2 then lprint "invalid number of players"
-    else Quester.new_game plist gname >>= function 
+    (*automatically make the user a player*)
+    let plist' = !current_state.info.username :: plist |> List.sort_uniq compare in 
+    if List.length plist' <> 2 then lprint "invalid number of players"
+    else Quester.new_game plist' gname >>= function 
     | Success -> return () 
     | Fail s -> lprint s   
-
 
   let handle_ls_users () =
     Quester.see_users () >>= fun ulst -> 
@@ -218,6 +211,8 @@ module MakeInterface (Quester : Api.Requester) = struct
       display_list disp_rm lst in
     clst |> disp_all 
   
+  (*[handle_ls_games ()] is called when the user tries to list the
+   *games they are in. Displays the games and players in a nice way*)
   let handle_ls_games () = 
     Quester.see_games !current_state.info.username >>= fun glst ->
     let disp_gm ({name = n ; players = p} : Type_info.gameroom) =
@@ -226,6 +221,8 @@ module MakeInterface (Quester : Api.Requester) = struct
       display_list disp_gm lst in 
     glst |> disp_all 
   
+  (*[handle_getwl ()] is called when the user tries to get their win-loss.
+   *prints it out as: W-L*)
   let handle_getwl () = 
     Quester.getwl !current_state.info.username >>= fun (w,l) ->
     lprint ((string_of_int w)^"-"^(string_of_int l))
@@ -257,6 +254,8 @@ module MakeInterface (Quester : Api.Requester) = struct
       | (Some a, Some b) -> a = b
       | _ -> false
   
+  (*[check_game_state serv_state last_state] compares [serv_state] and
+   *[last_state] to see if they are equal*)
   let check_game_state serv_state last_state = 
     match !current_state.mode with 
     | General | Inchat _ -> false 
@@ -288,18 +287,21 @@ module MakeInterface (Quester : Api.Requester) = struct
     | Success -> set_chat {last = Some msg; cr = c}; return ()
     | Fail b -> lprint b
 
-  let refresh_game {gr = g ; last_state = last ; my_turn = mt} =
+  (*[refresh_game game] makes sure the client's version of the game is 
+   *always up to date with the server's version*)
+  let refresh_game {gr = g ; last_state = last} =
     let uid = !current_state.info.username in 
     Quester.get_game uid g.name >>= fun (gr_st,_) ->
     let st = snd gr_st in 
+    (*do nothing if game is up to date or user is no longer in the game*)
     if check_game_state st last || !current_state.mode = General then 
       return () 
+    (*if server version is different update the current state to match*)
     else
-      let mt' = match mt with 
-      | Some b -> if b then Some false else Some true 
-      | None -> Some true 
-      in let mode' = Ingame {gr=g; last_state=st ; my_turn=mt'} in 
+      (*let mode' = Ingame {gr=g; last_state=st} in 
       (current_state := {!current_state with mode = mode'} ;
+      display_game_st st)*)
+      (set_game {gr=g; last_state=st} ; 
       display_game_st st)
 
   let mut = Lwt_mutex.create()
@@ -329,22 +331,29 @@ module MakeInterface (Quester : Api.Requester) = struct
       }; lprint ("entered " ^ crm.name ^ "\n") >>= fork_refresh
     | Fail s -> lprint s
 
+  (*[handle_enter_game s] is called when a user tries to enter a game with
+   *the command [s]. Updates the current_state accordingly with a dummy board
+   *so it will always display the correct current board upon entering*)
   let handle_enter_game s = 
+    (*extracts the game name from [s]*)
     let nm = Str.matched_group 1 s in 
     let uid = !current_state.info.username in 
     Quester.get_game uid nm >>= fun (((grm : Type_info.gameroom),_), succ) ->
     match succ with 
-    | Success -> current_state := {
+    | Success -> (*current_state := {
       mode = Ingame {
         gr = grm ;
-        last_state = [] ; (*[N;N;N;N;N;N;N;N;N]*)
-        my_turn = None  
+        last_state = []  
       } ; 
       info = {username = uid} ;
       status = !current_state.status
-      } ; lprint ("entered " ^ grm.name ^ "\n") >>= fork_refresh
+      } ;*) 
+      (set_game {gr=grm;last_state=[]} ; 
+      lprint ("entered " ^ grm.name ^ "\n") >>= fork_refresh)
     | Fail s -> lprint s 
 
+  (*[handle_exit_game ()] is called when a user tries to exit a game they are 
+   *in. Updates the current state accordingly*)
   let handle_exit_game () = 
     let uid = !current_state.info.username in
     (current_state := {
@@ -353,38 +362,28 @@ module MakeInterface (Quester : Api.Requester) = struct
       status = !current_state.status
     }) |> return
 
-  (*[replace lst n x] returns the list lst with the nth
-   *element replaced with x (starting from n=0)
-   *requires: 0 <= n < List.length lst*)
-  let rec replace lst n x = match lst with 
-  | h::t -> if n=0 then x::t
-            else h::(replace t (n-1) x)
-  | [] -> failwith "failure in replace"
-
   (*[handle_fill game inpt] handles trying to fill a square in 
    *the game [game]*)
-  let handle_fill {gr = g ; last_state = st ; my_turn = mt} inpt = 
+  let handle_fill {gr = g ; last_state = st} inpt = 
     let uid = !current_state.info.username in 
     let sq_num = try Str.matched_group 1 inpt |> int_of_string 
                  with _ -> -1 
     in
     if sq_num < 0 || sq_num >= List.length st 
-    then lprint "invalid square number\n"
-    (*else let st' = replace st sq_num X in *)
-    else if mt = Some true || mt = None then 
-      (current_state := {!current_state with mode = Ingame {gr=g;last_state=st;my_turn=Some true}} ;
+    then lprint "invalid square number\n\n"
+    else  
+      (*(current_state := {!current_state with mode = Ingame {gr=g;last_state=st}} ;*)
+      (set_game {gr=g;last_state=st} ; 
       Quester.fill_board uid g sq_num >>= function 
       | Success -> return () 
       | Fail s -> lprint s)
-    else lprint "It's not your turn\n" 
 
+  (*[handle_reset g] handles resetting the game g*)
   let handle_reset g = 
     let uid = !current_state.info.username in 
-    let mode' = Ingame {g with my_turn=None} in 
-    (current_state := {!current_state with mode = mode'} ;
     Quester.reset_board uid g.gr >>= function 
     | Success -> return ()
-    | Fail s -> lprint s)
+    | Fail s -> lprint s
 
   let handle_leave_room s =
     let crname = Str.matched_group 1 s in
@@ -441,6 +440,7 @@ module MakeInterface (Quester : Api.Requester) = struct
     else if "^leave \\(.*\\)" |> sm then handle_leave_room s
     else if "^block \\(.*\\)" |> sm then handle_block s
     else if "^unblock \\(.*\\)" |> sm then handle_unblock s
+    else if "^exit" |> sm then let _ = lprint "Goodbye!\n" in return (exit 0) 
     (*else if "^open \\(.*\\)" |> sm then 
     | "open" |> sm -> handle_open ()*)
     else       
@@ -463,19 +463,21 @@ module MakeInterface (Quester : Api.Requester) = struct
     lread () >>= fun inpt ->
     let g = match !current_state.mode with Ingame gm -> gm in  
     if "\\\\fill \\(.*\\)" |> str_mtch inpt then
+      (*does not allow squares to be filled after the game is over*)
       if check_victory g.last_state X || check_victory g.last_state O 
-        then lprint "The game is over!\n"
+        then lprint "The game is over!\n\n"
       else handle_fill g inpt
     else 
       match inpt with  
       | "\\reset" -> 
+        (*does not allow resetting a game that is in progress*)
         if check_victory g.last_state X || check_victory g.last_state O 
           then handle_reset g 
-        else lprint "The game isn't over yet!\n"          
+        else lprint "The game isn't over yet!\n\n"          
       | "\\exit" -> handle_exit_game () 
       | "\\help" -> lprint "\\exit to exit the game\n\\fill to fill a specified square. 
-Squares are numbered as follows:\n0 1 2\n3 4 5\n6 7 8\n"
-      | _ -> lprint "unrecognized command\n"  
+Squares are numbered as follows:\n0 1 2\n3 4 5\n6 7 8\n\n"
+      | _ -> lprint "unrecognized command\n\n"  
 
   let process_input () = 
     match !current_state.mode with
