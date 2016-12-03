@@ -12,7 +12,7 @@ open Lwt
 exception ServerError
 exception ClientError
 
-module type Client = sig
+(*module type Client = sig
 
 
   (* [init host port] will ultimately yield a
@@ -25,7 +25,7 @@ module type Client = sig
    * be used with care*)
   val init : string -> int -> (request -> response Lwt.t) Lwt.t
 
-end
+end*)
 
 module type Requester = sig 
 
@@ -70,9 +70,9 @@ end
 
 
 module type RequesterMaker =
- functor (Cl : Client ) -> Requester
+ functor (Cl : Chat_client.Client ) -> Requester
 
-module MakeRequester (Cl : Client) = struct
+module MakeRequester (Cl : Chat_client.Client) = struct
 
   (*[send_req req] is what the api uses to send
    * requests. It has to be crafted delicately so
@@ -147,7 +147,7 @@ module MakeRequester (Cl : Client) = struct
     let req = Unblock (identifier, target) in
     send_req req >|= snd
 
-  let send_message identifier cr content = (*string -> success*)
+  let send_message identifier cr content =
     let cont = {
       user = identifier;
       room = cr;

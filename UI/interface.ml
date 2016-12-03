@@ -391,6 +391,35 @@ let hide_password () =
         return ()
     | Fail s -> lprint s >>= fun _ -> lprint "\n"
 
+  (******* help messages ****************************)
+
+  let command_help_messages = [
+    "ls users           Displays a list of users";
+    "ls rooms           Displays a list of your rooms";
+    "new room           Initiates protocol for new room creation";
+    "new game           Initiates protocol for new game creation";
+    "ls games           Lists your games";
+    "get wl             Gets your win loss record";
+    "play <name>        Starts a game of tic tac toe with <name>";
+    "enter <room-name>  Enters the room <room-name>";
+    "leave <room-name>  Removes you from the room <room-name>";
+    "block <user>       Blocks user <user>";
+    "unblock <user>     Unblocks user <user>";
+    "exit               Terminates the session";
+  ]
+    
+  let chatroom_help_messages = [
+    "\\add <user>       Adds <user> to the room";
+    "\\exit             Leaves the chatroom";
+  ]
+
+  let print_cmnd_help () = 
+    display_title_list "Your commands are:\n" command_help_messages
+
+  let print_msg_help () =
+    display_title_list "Keywords are:\n" chatroom_help_messages
+
+  (******* help messages *****************************)
   (************ End Formatting and printing **********)
 
   (************ process command and helpers **********)
@@ -414,7 +443,8 @@ let hide_password () =
     else if "^leave \\(.*\\)" |> sm then handle_leave_room s
     else if "^block \\(.*\\)" |> sm then handle_block s
     else if "^unblock \\(.*\\)" |> sm then handle_unblock s
-    else if "^exit" |> sm then let _ = lprint "Goodbye!\n" in return (exit 0) 
+    else if "^help" |> sm then print_cmnd_help ()
+    else if "^exit" |> sm then lprint "Goodbye!\n" >>= fun _ -> exit 0
     (*else if "^open \\(.*\\)" |> sm then 
     | "open" |> sm -> handle_open ()*)
     else       
@@ -427,7 +457,7 @@ let hide_password () =
     else
       match inpt with
       | "\\exit" -> handle_exit_room ()
-      | "\\r" -> refresh_messages cht
+      | "\\help" -> print_msg_help ()
       | s -> handle_send_message cht s
 
   (*note: uses unit to make sure the current state has the right state of 
@@ -458,17 +488,8 @@ let hide_password () =
     | Inchat cht -> process_msg cht
     | Ingame _ -> process_game () 
     | General -> process_command ()
-    (*let cmd_re = Str.regexp "\\(^\\\\[a-zA-Z]+\\).*" in
-    if Str.string_match cmd_re input 0 then
-      let delim = Str.group_end 1 in
-      let keyword = Str.string_before input delim in
-      let additional = Str.string_after input (delim + 1) in
-      process_command (keyword, additional)
-    else process_msg input*)
-
+    
   let rec repl () = 
-    (*command_prompt () >>= fun _ ->
-    Lwt_io.read_line Lwt_io.stdin >>=*)
     process_input () >>= repl
 
   let rec run () =
@@ -496,5 +517,5 @@ let hide_password () =
 
 end
 
-module Dummyquester = MakeRequester(Chat_client_test)
+module Dummyquester = MakeRequester(Chat_client.Cl)
 module DummyInterface = MakeInterface(Dummyquester)

@@ -9,11 +9,6 @@ open Lwt
 (* A type representing all the context of the current
  * session *)
 
-module type Client = sig
-
-  val init : string -> int -> (request -> response Lwt.t) Lwt.t
-
-end
 
 module type Requester = sig 
 
@@ -57,6 +52,6 @@ module type Requester = sig
 end
 
 module type RequesterMaker =
- functor (Cl : Client ) -> Requester
+ functor (Cl : Chat_client.Client ) -> Requester
 
 module MakeRequester : RequesterMaker
