@@ -5,9 +5,7 @@ type user_info = {
   username: id; 
   password: id; 
   mutable wl: (int*int);
-  mutable blocked: string list; (* 
-  mutable rooms: chatroom list;
-  oc: Lwt_io.output_channel; *)
+  mutable blocked: string list;
 }
 
 type game_info = {
@@ -409,12 +407,14 @@ let create_server sock =
 
 let get_my_addr () =
   let addr = 
-    if Array.length Sys.argv > 1 && Sys.argv.(1) = "-o" then
-      (Unix.gethostbyname(Unix.gethostname())).Unix.h_addr_list.(0)
-    else Unix.inet_addr_loopback in
+    match Server_args.obj with
+    | Web -> 
+        (Unix.gethostbyname(Unix.gethostname())).Unix.h_addr_list.(0)
+    | Local -> Unix.inet_addr_loopback in
   let s = Unix.string_of_inet_addr addr in
   Lwt.async ( fun () ->
-    Lwt_io.write_line Lwt_io.stdout ("running on port 3110 of " ^ s);
+    ("attempting to run on port 3110 of " ^ s)
+    |> Lwt_io.write_line Lwt_io.stdout
   );
   addr
 

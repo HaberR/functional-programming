@@ -2,15 +2,16 @@ open Type_info
 open Unix
 open Lwt
 
+(*[mut] is a mutex we will use
+ * to make the result of the init
+ * call thread safe *)
 let mut = Lwt_mutex.create ()
 
-(* [get_requester server port] takes a string [server] and
- * an integer [port] and produces a function request -> response Lwt.t
- * which may be used to send requests to the server at port [port] *)
+(* [init server port] takes a string [server] and
+ * an integer [port] and produces a function (request -> response Lwt.t) Lwt.t
+ * which may be used to send requests to the server at port [port].
+ * This function is thread safe. *)
 let init server port =
-  (*if Array.length Sys.argv < 3
-  then Printf.printf "usage : client server port\n"
-  else*)
   let server_addr =
     try Unix.inet_addr_of_string server
     with Failure("inet_addr_of_string") -> 
@@ -19,52 +20,14 @@ let init server port =
         Printf.eprintf "%s : unknown server\n" server ;
         exit 2
   in try
-    (*let port = int_of_string port in*)
     let sockaddr = Unix.ADDR_INET(server_addr, port) in
-    (* oc = output channel of server.
-     * ic = input channel of client *)
     (Lwt_io.open_connection sockaddr >|= fun (ic, oc) -> 
       (fun req ->
         Lwt_mutex.lock mut >>= fun () ->
         let req' = req |> req_to_string in
-        (*Lwt_io.write_line Lwt_io.stdout "writing" >>= fun () ->*)
         Lwt_io.write_line oc req' >>= fun () ->
         Lwt_io.flush oc >>= fun () ->
         Lwt_io.read_line ic >|= resp_from_string >|= fun r ->
-        (*Lwt_io.write_line Lwt_io.stdout "reading" >|= fun () ->*)
         Lwt_mutex.unlock mut; r))
-    (*match Lwt_unix.fork () with 
-    | 0 -> client_child_fun oc ; exit 0
-    | id -> client_parent_fun ic ; Lwt_io.close ic |> Lwt_main.run ; ignore (Unix.waitpid [] id)*)
-  with 
+      with 
     Failure("int_of_string") -> Printf.eprintf "bad port number" ; exit 2
-
-(*
-let send_req (ic, oc) req =
-  Lwt_io.write_line oc (req ^ "\n") >>= fun () ->
-  Lwt_io.flush oc >>= fun () ->
-  print_string ("wrote: " ^ req);
-  Lwt_io.read_line ic 
-  *)
-
-
-  (*
-let copy_channels ic oc = 
-  try while true do
-    let s = ((Lwt_io.read_line ic) |> Lwt_main.run)(*^"\n"*)in 
-    (Lwt_io.write_line oc (s) |> Lwt_main.run ; Lwt_io.flush oc |> Lwt_main.run)
-    done 
-  with End_of_file -> ()
-
-let child_fun ic oc =
-  copy_channels ic oc ;
-  Lwt_io.write_line oc ("FIN\n") |> Lwt_main.run ;
-  Lwt_io.flush oc
-
-let parent_fun oc ic = copy_channels ic oc 
-
-let init () =
-  main_client (parent_fun Lwt_io.stdout) (child_fun Lwt_io.stdin) ;
-  Lwt_io.close Lwt_io.stdin |> Lwt_main.run
-
-*)

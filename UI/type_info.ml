@@ -26,15 +26,6 @@ type msg =
 
 type success = Success | Fail of string [@@deriving sexp]
 
-(*
-type req_header = 
-  | Message 
-  | Login 
-  | Newroom 
-  | Block 
-  | Listrooms | Listusers | Listmessages
-  *)
-
 (* request is the type of requests that the client
  * may send to the server*)
 type request = 

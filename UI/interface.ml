@@ -27,12 +27,9 @@ module MakeInterface (Quester : Api.Requester) = struct
 
   type md = Inchat of chat | Ingame of game | General
 
-  type cmnd_status = (string * success) list
-
   type state = {
     mode : md;
     info : information;
-    status : cmnd_status
   }
 
   type t = state ref
@@ -45,7 +42,6 @@ module MakeInterface (Quester : Api.Requester) = struct
   let current_state = ref ( {
     mode = General;
     info = { username = "nothing"};
-    status = []
   })
  
   let log_on identifier = 
@@ -54,14 +50,7 @@ module MakeInterface (Quester : Api.Requester) = struct
         current_state := {
         mode = General;
         info = { username = identifier };
-        status = []
         }); succ
-  let set_chat cr_and_last = 
-    current_state := {
-      mode = Inchat cr_and_last;
-      info = !current_state.info;
-      status = !current_state.status;
-    }
   
   (*[set_game game] updates the current_state with [game]*)
   let set_game game = 
@@ -112,13 +101,7 @@ let hide_password () =
   let auth_pswd pswd identifier = 
       Quester.auth pswd identifier
       
-  let set_chat cr_and_last = 
-    current_state := {
-      mode = Inchat cr_and_last;
-      info = !current_state.info;
-      status = !current_state.status;
-    }
-  (************ end init stuff ***********************)
+(************ end init stuff ***********************)
 
   (* Displays the prompt for login *)
   let login_prompt () = 
@@ -166,7 +149,7 @@ let hide_password () =
   (* Displays a list with a title. Requires
    * that list elements be strings *)
   let display_title_list title lst =
-    lprint title >>= fun _ ->
+    lprint (title^"\n") >>= fun _ ->
     let lst' = lst |> List.map ((^) "\t") in
     display_list lprint lst'
   
@@ -234,7 +217,6 @@ let hide_password () =
     (current_state := {
       mode = General;
       info = {username = uid};
-      status = !current_state.status
     }) |> return
 
   let print_message usr msg = 
@@ -286,7 +268,9 @@ let hide_password () =
     let uid = !current_state.info.username in
     Quester.send_message uid c s >>= fun (msg, succ) ->
     match succ with
-    | Success -> set_chat {last = Some msg; cr = c}; return ()
+    | Success -> 
+        let mode' = Inchat {last = Some msg; cr = c} in
+        return (current_state := {!current_state with mode = mode'})
     | Fail b -> lprint b
 
   (*[refresh_game game] makes sure the client's version of the game is 
@@ -326,7 +310,6 @@ let hide_password () =
         cr = crm
       };
       info = {username = uid};
-      status = !current_state.status
       }; lprint ("entered " ^ crm.name ^ "\n") >>= fork_refresh
     | Fail s -> lprint s
 
@@ -351,7 +334,6 @@ let hide_password () =
     (current_state := {
       mode = General;
       info = {username = uid};
-      status = !current_state.status
     }) |> return
 
   (*[handle_fill game inpt] handles trying to fill a square in 
@@ -467,8 +449,8 @@ let hide_password () =
           then handle_reset g 
         else lprint "The game isn't over yet!\n\n"          
       | "\\exit" -> handle_exit_game () 
-      | "\\help" -> lprint "\\exit to exit the game\n\\fill to fill a specified square. 
-Squares are numbered as follows:\n0 1 2\n3 4 5\n6 7 8\n\n"
+      | "\\help" -> lprint ("\\exit to exit the game\n\\fill to fill a specified square. " ^
+              "Squares are numbered as follows:\n0 1 2\n3 4 5\n6 7 8\n\n")
       | _ -> lprint "unrecognized command\n\n"  
 
   let process_input () = 
@@ -504,7 +486,13 @@ Squares are numbered as follows:\n0 1 2\n3 4 5\n6 7 8\n\n"
             else lprint "Wrong Password \n" >>= fun _ -> run() )
         else lprint "This id is not recognized\n"  >>= fun _ -> run ()
 
-  let _ = run () |> Lwt_main.run
+  let bad_server_msg =
+    "Failed to connect to the server"
+  let _ = 
+    try run () |> Lwt_main.run with
+    | Unix.Unix_error _ -> print_endline bad_server_msg; exit 0
+    | _ -> print_endline "Unknown error."; exit 0
+
 
 end
 

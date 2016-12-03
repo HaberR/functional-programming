@@ -11,11 +11,7 @@ open Lwt
 
 module type Client = sig
 
-  (*val init : unit -> unit*)
-
   val init : string -> int -> (request -> response Lwt.t) Lwt.t
-
-  (*val send_req : request -> response Lwt.t*)
 
 end
 
