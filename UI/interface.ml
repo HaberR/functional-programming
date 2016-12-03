@@ -82,24 +82,35 @@ module MakeInterface (Quester : Api.Requester) = struct
   let message_prompt () =
     lprint "\n"
 
+let hide_password () =
+  let with_echo = Unix.tcgetattr Unix.stdin in
+  let no_echo = { with_echo with Unix.c_echo = false } in
+  Unix.tcsetattr Unix.stdin Unix.TCSANOW no_echo;
+  try
+    let pswd = read_line ()  in
+    print_newline ();
+    Unix.tcsetattr Unix.stdin Unix.TCSAFLUSH with_echo;
+    pswd
+  with e ->
+    Unix.tcsetattr Unix.stdin Unix.TCSAFLUSH with_echo;
+    raise e
+
   let rec handle_register () = 
     lprint "Choose your id: " >>= command_prompt>>= 
     lread >>= fun id -> Quester.login id >>= function
-    | Fail b -> lprint "Create Password: " >>=
-          command_prompt>>= lread>>= fun pswd1 -> 
+    | Fail b -> print_string "Create Password: " ; let pswd1 = hide_password ()in 
           if (String.length pswd1 >=4) then 
-            lprint "Confirm Password: " >>= 
-            command_prompt>>=lread>>= fun pswd2 ->
-            if pswd1=pswd2 then Quester.register id pswd2 >|= fun succ ->
+            (print_string "Confirm Password: " ; let pswd2 = hide_password () in 
+            if pswd1=pswd2 then (Quester.register id pswd2 >|= fun succ ->
               (if succ=Success then
                 current_state := {
                 mode = General;
                 info = { username = id };
                 status = []
-                }); succ
-            else (lprint "Passwords not matching\n") >>= fun _ ->handle_register ()
-          else lprint "Password should be at least 4 characters\n" >>= fun _ -> handle_register () 
-    | Success  ->(lprint "This id is already registered to another client\n") >>= fun _ -> handle_register () 
+                }); succ)
+            else (lprint "Passwords not matching!\n") >>= fun _ ->handle_register () )
+          else (lprint "Password should be at least 4 characters\n") >>= fun _ ->handle_register () 
+    | Success  ->(lprint "This id is already registered to another client\n") >>= fun _ ->handle_register () 
 
   let log_on identifier =
       Quester.login identifier >|= fun succ -> succ
@@ -414,16 +425,14 @@ module MakeInterface (Quester : Api.Requester) = struct
     command_prompt >>= fun _ ->
     Lwt_io.read_line Lwt_io.stdin >>= fun id ->
     if "^[Nn]" |> str_mtch id then handle_register ()>>=fun _->run()
-
     else
       log_on id >>= fun succ ->
         if succ=Success then 
-          lprint "\nPassword:" >>= fun _ ->
-          Lwt_io.read_line Lwt_io.stdin >>= fun pswd->
+          (print_string "\nPassword: "; let pswd = hide_password () in
           auth_pswd id pswd >>= fun succ2 ->
             if succ2=Success then
               repl ()
-            else lprint "Wrong Password \n" >>= fun _ -> run()
+            else lprint "Wrong Password \n" >>= fun _ -> run() )
         else lprint "This id is not recognized\n"  >>= fun _ -> run ()
 
   let _ = run () |> Lwt_main.run
