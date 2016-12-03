@@ -65,10 +65,8 @@ module MakeInterface (Quester : Api.Requester) = struct
   
   (*[set_game game] updates the current_state with [game]*)
   let set_game game = 
-    current_state := {
-      mode = Ingame game ;
-      info = !current_state.info ;
-      status = !current_state.status
+    current_state := {!current_state with 
+      mode = Ingame game 
     }
   (************ end init stuff ***********************)
 
