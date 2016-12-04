@@ -491,7 +491,8 @@ module MakeInterface (Quester : Api.Requester) = struct
     | Success -> run ()
     | Fail s -> lprint s >>= run
     else handle_auth rd >>= function
-    | Success -> repl ()
+    | Success -> 
+        current_state := {!current_state with info = {username = rd}}; repl ()
     | Fail s -> lprint s >>= run
       (*log_on rd >>= fun succ ->
         if succ=Success then 
