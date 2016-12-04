@@ -1,6 +1,8 @@
 open Lwt
 open Type_info
 
+(* [user_info] is the type of the state of
+ * a given user*)
 type user_info = {
   username: id; 
   password: id; 
@@ -8,13 +10,21 @@ type user_info = {
   mutable blocked: string list;
 }
 
+(* [game_info] maintains the state of a given
+ * game*)
 type game_info = {
   gr: gameroom ; 
   mutable board: square list ;
   mutable last_turn: id option 
 }
 
+(* [clients] is a hashtable mapping user ids to
+ * user info. This means that user ids must be
+ * unique*)
 let (clients : (id, user_info) Hashtbl.t) = Hashtbl.create 100
+(* [rooms] is a hashtable mapping room names to
+ * the chatroom and its message history. This means
+ * chatroom names must be unique*)
 let (rooms : (string, chatroom * msg list) Hashtbl.t) = Hashtbl.create 100
 
 (*Hashtable mapping names of games to their game_infos*)
@@ -25,12 +35,21 @@ let (games : (string, game_info) Hashtbl.t) = Hashtbl.create 100
 (****** handlers and helpers for handle_request ****)
 (***************************************************)
 
+(*[u |>? f] ensures that [u] is registered, if so, it
+ * applies f to the clients entry for [u]. If not, it
+ * returns a failure response. It was inspired
+ * by the bind operator *)
 let (|>?) u f =
-  if Hashtbl.mem clients u then f u
+  if Hashtbl.mem clients u then 
+    Hashtbl.find clients u |> f
   else (Nothing, Fail (u ^ " is not registered"))
 
+(*[r |>?? f] ensures that [r] is registered. If so, it
+ * applies r to the rooms entry for [r]. If not, it
+ * returns a failure response.*)
 let (|>??) r f = 
-  if Hashtbl.mem rooms r then f r
+  if Hashtbl.mem rooms r then 
+    Hashtbl.find rooms r |> f
   else (Nothing, Fail ("the room " ^ r ^ " does not exist"))
 
 (* [handle_login i oc] returns a success response
@@ -47,16 +66,13 @@ let handle_reg id pswd oc =
       username = id;
       password = pswd;
       wl = (0,0);
-      blocked = [];(* 
-      rooms = [];
-      oc = oc *)
+      blocked = [];
     } in
     Hashtbl.add clients id info;
     (Nothing, Success)
 
 let handle_auth u pswd oc = 
-  u |>? fun nm ->
-  let target = Hashtbl.find clients nm in 
+  u |>? fun target ->
   if target.password=pswd then (Nothing, Success)
   else (Nothing, Fail "wrong password")
 
@@ -96,16 +112,23 @@ let check_game gr =
     stringified @ lst in
   List.fold_left fold [] gr.players
 
+(*[list_to_string lst] is a string which has the
+ * elements of lst concatenated with a new line
+ * character.*)
 let list_to_string lst =
   let fold joined s = joined ^ "\n" ^ s in
   List.fold_left fold "" lst
 
+(*[unpackaged_get_rooms i] is the list of all rooms
+ * for which [i] is a participant *)
 let unpackaged_get_rooms i =
   let fold _ (cr,_) lst =
     if List.mem i cr.participants then cr :: lst
     else lst in
   Hashtbl.fold fold rooms []
 
+(*[get_rooms i] handles the get_rooms request. It
+ * returns all the rooms that [i] is in *)
 let get_rooms i =
   let lst = unpackaged_get_rooms i in
   (Chatrooms lst, Success)
@@ -113,33 +136,29 @@ let get_rooms i =
 (* [leave u t] goes through all the chatrooms
  * that u has in common with [t] and removes [u]
  * from them. Raises Not_found if [t] is not registered *)
-let leave u t =
-  let target = Hashtbl.find clients t in
+let leave u target =
   let replace ({name = nm; participants = p} as cr) =
     let m_hst = Hashtbl.find rooms nm |> snd in
     let p' = p |> List.filter ((<>) u) in
     let rm' = ({ cr with participants = p'}, m_hst) in
     Hashtbl.replace rooms nm rm' in
-  let rms = unpackaged_get_rooms t  in
+  let rms = unpackaged_get_rooms target.username  in
   rms |> List.iter replace
-
 
 (* [handle_block u t] removes [u] from all the
  * chat rooms [t] is in and adds [t] to [u]'s
  * block list *)
 let handle_block user target =
-  user |>? fun u ->
+  user |>? fun u_info ->
   target |>? fun t ->
-  let user_info = Hashtbl.find clients u in
-  user_info.blocked <- t :: user_info.blocked;
-  leave u t;
+  u_info.blocked <- target :: u_info.blocked;
+  leave user t;
   (Nothing, Success)
 
 let handle_unblock user target =
-  user |>? fun u ->
-  target |>? fun t ->
-  let u_info = Hashtbl.find clients u in
-  let blocked' = u_info.blocked |> List.filter ((<>) t) in
+  user |>? fun u_info ->
+  target |>? fun _ ->
+  let blocked' = u_info.blocked |> List.filter ((<>) target) in
   u_info.blocked <- blocked'; 
   (Nothing, Success)
 
@@ -148,8 +167,7 @@ let handle_unblock user target =
  * specified in [msg] provided that the sender id
  * has access to the room and the room exists. *)
 let post_message msg = 
-  msg.room.name |>?? fun rmname ->
-  let (rm, msgs) = Hashtbl.find rooms rmname in
+  msg.room.name |>?? fun (rm, msgs) ->
   if rm.participants |> (List.mem msg.user) then
     let msgs' = msg :: msgs in
     Hashtbl.replace rooms rm.name (rm, msgs');

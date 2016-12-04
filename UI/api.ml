@@ -123,13 +123,13 @@ module MakeRequester (Cl : Chat_client.Client) = struct
     | (_,Fail s) -> ({participants = []; name = ""}, Fail s) in
     send_req req >|= f
    
-  let see_messages identifier last cr = (* () -> msg list*)
+  let see_messages identifier last cr = 
     let f = function
       | Messages lst -> lst | _ -> raise ClientError in
     send_req (Listmessages (identifier, last, cr)) >|= 
     (handle_response f)
 
-  let block_user identifier target = (*id -> success*)
+  let block_user identifier target =
     let req = Block (identifier, target) in
     send_req req >|= snd
 
