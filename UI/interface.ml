@@ -44,14 +44,6 @@ module MakeInterface (Quester : Api.Requester) = struct
     info = { username = "nothing"};
   })
  
-  let log_on identifier = 
-    Quester.login identifier >|= fun succ ->
-      (if succ=Success then
-        current_state := {
-        mode = General;
-        info = { username = identifier };
-        }); succ
-  
   (*[set_game game] updates the current_state with [game]*)
   let set_game game = 
     current_state := {!current_state with 
@@ -71,35 +63,33 @@ module MakeInterface (Quester : Api.Requester) = struct
   let message_prompt () =
     lprint "\n"
 
-let hide_password () =
-  let with_echo = Unix.tcgetattr Unix.stdin in
-  let no_echo = { with_echo with Unix.c_echo = false } in
-  Unix.tcsetattr Unix.stdin Unix.TCSANOW no_echo;
-  try
-    let pswd = read_line ()  in
-    print_newline ();
-    Unix.tcsetattr Unix.stdin Unix.TCSAFLUSH with_echo;
-    pswd
-  with e ->
-    Unix.tcsetattr Unix.stdin Unix.TCSAFLUSH with_echo;
-    raise e
+  let hide_password () =
+    let with_echo = Unix.tcgetattr Unix.stdin in
+    let no_echo = { with_echo with Unix.c_echo = false } in
+    Unix.tcsetattr Unix.stdin Unix.TCSANOW no_echo;
+    try
+      lread () >>= fun pass ->
+      lprint "\n" >|= fun () ->
+      Unix.tcsetattr Unix.stdin Unix.TCSAFLUSH with_echo;
+      pass
+    with e ->
+      Unix.tcsetattr Unix.stdin Unix.TCSAFLUSH with_echo;
+      raise e
 
   let rec handle_register () = 
     lprint "Choose your id: " >>= command_prompt>>= 
-    lread >>= fun id -> if String.contains id ' ' then
-      lprint "id should not contain spaces!\n" >>= fun _ ->handle_register () 
+    lread >>= fun uid -> 
+    if String.contains uid ' ' then
+      lprint "id should not contain spaces!\n" >>= handle_register
     else
-      Quester.login id >>= function
-      | Fail b -> print_string "Create Password: " ; let pswd1 = hide_password ()in 
-            if (String.length pswd1 >=4) then 
-              (print_string "Confirm Password: " ; let pswd2 = hide_password () in 
-              if pswd1=pswd2 then Quester.register id pswd2       
-              else (lprint "Passwords not matching!\n") >>= fun _ ->handle_register () )
-            else (lprint "Password should be at least 4 characters\n") >>= fun _ ->handle_register () 
-      | Success  ->(lprint "This id is already registered to another client\n") >>= fun _ ->handle_register () 
+      lprint "Create Password: " >>= hide_password >>= fun pswd1 ->
+      if (String.length pswd1 >=4) then 
+        lprint "Confirm Password: " >>= hide_password >>= fun pswd2 ->
+        if pswd1=pswd2 then Quester.register uid pswd2
+        else (lprint "Passwords not matching!\n") >>= handle_register
+      else (lprint "Password should be at least 4 characters\n") >>= handle_register
+      (*| Success  ->( lprint "This id is already registered to another client\n") >>= fun _ ->handle_register () *)
 
-  let auth_pswd pswd identifier = 
-      Quester.auth pswd identifier
       
 (************ end init stuff ***********************)
 
@@ -107,11 +97,6 @@ let hide_password () =
   let login_prompt () = 
     lprint "Enter your (id) or (N) for new user\nid: "
 
-  (*let print_in_place lst txt =
-    let x, y = T.pos_cursor () in
-    T.print_string lst txt;
-    T.set_cursor x y*)
-  
   (*[display_game_st st] prints the board represented by the state st
    *with proper formatting*)
   let display_game_st st = 
@@ -494,28 +479,36 @@ let hide_password () =
   let rec repl () = 
     process_input () >>= repl
 
+  let handle_auth identifier = 
+    lprint "Password\n" >>= hide_password >>= fun pass ->
+    Quester.auth identifier pass
+
   let rec run () =
     login_prompt() >>= 
     command_prompt >>= fun _ ->
-    Lwt_io.read_line Lwt_io.stdin >>= fun id ->
-    if "^[Nn]" |> str_mtch id then handle_register ()>>=fun _->run()
-    else
-      log_on id >>= fun succ ->
+    lread() >>= fun rd ->
+    if "^[Nn]" |> str_mtch rd then handle_register () >>= function
+    | Success -> run ()
+    | Fail s -> lprint s >>= run
+    else handle_auth rd >>= function
+    | Success -> repl ()
+    | Fail s -> lprint s >>= run
+      (*log_on rd >>= fun succ ->
         if succ=Success then 
           (print_string "\nPassword: "; let pswd = hide_password () in
           auth_pswd id pswd >>= fun succ2 ->
             if succ2=Success then
               repl ()
             else lprint "Wrong Password \n" >>= fun _ -> run() )
-        else lprint "This id is not recognized\n"  >>= fun _ -> run ()
+        else lprint "This id is not recognized\n"  >>= fun _ -> run ()*)
 
   let bad_server_msg =
     "Failed to connect to the server"
+
   let _ = 
     try run () |> Lwt_main.run with
     | Unix.Unix_error _ -> print_endline bad_server_msg; exit 0
     | _ -> print_endline "Unknown error."; exit 0
-
 
 end
 

@@ -11,15 +11,7 @@ open Lwt
 exception ServerError
 exception ClientError
 
-(*module type Client = sig
-
-  val init : string -> int -> (request -> response Lwt.t) Lwt.t
-
-end*)
-
 module type Requester = sig 
-
-  val login : id -> success Lwt.t
 
   val register: id -> string-> success Lwt.t
 
@@ -91,10 +83,6 @@ module MakeRequester (Cl : Chat_client.Client) = struct
   let handle_response f (cont, succ) =
     if succ=Success then f cont
     else raise ServerError
-
-  let login identifier =
-    let req = Login identifier in
-    send_req req >|= snd
 
   let register id pswd = 
     let req = Register (id,pswd) in 

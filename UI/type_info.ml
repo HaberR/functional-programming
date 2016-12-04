@@ -31,7 +31,6 @@ type success = Success | Fail of string [@@deriving sexp]
 type request = 
   | Message of msg
   | Register of id * string 
-  | Login of id
   | Auth of id * string
   | Block of id * id
   | Unblock of id * id
@@ -58,6 +57,7 @@ type resp =
   | Wl of int * int 
   | Gamerooms of gameroom list 
   | Gamestate of gameroom * square list 
+  | Sessionkey of int
   | Nothing [@@deriving sexp] 
 
 (* the type of the response *)

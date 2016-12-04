@@ -5,10 +5,13 @@ open Type_info
  * a given user*)
 type user_info = {
   username: id; 
-  password: id; 
   mutable wl: (int*int);
   mutable blocked: string list;
+  mutable key : int option;
+  seed: int;
+  hashed: int;
 }
+
 
 (* [game_info] maintains the state of a given
  * game*)
@@ -52,29 +55,35 @@ let (|>??) r f =
     Hashtbl.find rooms r |> f
   else (Nothing, Fail ("the room " ^ r ^ " does not exist"))
 
-(* [handle_login i oc] returns a success response
- * and registers the user if they aren't already registered
- * (adding them to the client hashtbl) *)
-let handle_login i oc =
-  i |>? fun _ -> (Nothing, Success)
-  (*if Hashtbl.mem clients i then
-    (Nothing, Success)
-  else (Nothing, Fail "user not registered")*)
+let proper_pass user pass =
+  Hashtbl.seeded_hash user.seed pass = user.hashed
 
-let handle_reg id pswd oc = 
+let _ = Random.self_init ()
+
+let handle_reg uname pswd oc = 
+  let s = Random.int 100000000 in
+  let h = Hashtbl.seeded_hash s pswd in
   let info = { 
-      username = id;
-      password = pswd;
+      username = uname;
       wl = (0,0);
       blocked = [];
+      key = None;
+      seed = s;
+      hashed = h;
     } in
-    Hashtbl.add clients id info;
-    (Nothing, Success)
+  Hashtbl.add clients uname info;
+  (Nothing, Success)
 
-let handle_auth u pswd oc = 
-  u |>? fun target ->
-  if target.password=pswd then (Nothing, Success)
-  else (Nothing, Fail "wrong password")
+let handle_auth u pswd = 
+  let fail = (Nothing, Fail "Invalid username or password\n") in
+  if Hashtbl.mem clients u then
+    let usr = Hashtbl.find clients u in
+    if proper_pass usr pswd then 
+      let k = Random.int 10000000 in
+      usr.key <- Some k;
+      (Sessionkey k, Success)
+    else fail
+  else fail
 
 (*[common_elem l1 l2] is l3 where x is in l3 iff
  * x is in l1 and x is in l2 *)
@@ -366,9 +375,8 @@ let leave_room u crname =
 (***************************************************)
 let handle_request req oc =
   match req |> req_from_string with
-  | Login identifier -> handle_login identifier oc
   | Register (identifier, pswd) -> handle_reg identifier pswd oc 
-  | Auth (identifier, pswd) -> handle_auth identifier pswd oc
+  | Auth (identifier, pswd) -> handle_auth identifier pswd 
   | Block (user, target) -> handle_block user target
   | Unblock (user, target) -> handle_unblock user target
   | Message msg -> post_message msg

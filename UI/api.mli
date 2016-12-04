@@ -14,7 +14,6 @@ module type Requester = sig
 
   (*[login uid] sends a login request and returns
    * a success indicating the success of the action*)
-  val login : id -> success Lwt.t
 
   (*[register uid pass] attempts to register [uid]
    * with password [pass] and returns a success
