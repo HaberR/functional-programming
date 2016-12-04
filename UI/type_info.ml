@@ -26,9 +26,11 @@ type msg =
 
 type success = Success | Fail of string [@@deriving sexp]
 
+type identifier = (id * int) option [@@deriving sexp] 
+
 (* request is the type of requests that the client
  * may send to the server*)
-type request = 
+type request_content = 
   | Message of msg
   | Register of id * string 
   | Auth of id * string
@@ -47,6 +49,8 @@ type request =
   | Resetgame of id * gameroom 
   | AddToRoom of id * id * string 
   | LeaveRoom of id * string [@@deriving sexp]
+
+type request = identifier * request_content [@@deriving sexp]
 
 type resp = 
   | Chatroom of chatroom

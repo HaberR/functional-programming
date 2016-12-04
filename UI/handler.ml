@@ -61,18 +61,21 @@ let proper_pass user pass =
 let _ = Random.self_init ()
 
 let handle_reg uname pswd = 
-  let s = Random.int 100000000 in
-  let h = Hashtbl.seeded_hash s pswd in
-  let info = { 
-      username = uname;
-      wl = (0,0);
-      blocked = [];
-      key = None;
-      seed = s;
-      hashed = h;
-    } in
-  Hashtbl.add clients uname info;
-  (Nothing, Success)
+  if Hashtbl.mem clients uname then 
+    (Nothing, Fail "That username has already been taken")
+  else 
+    let s = Random.int 100000000 in
+    let h = Hashtbl.seeded_hash s pswd in
+    let info = { 
+        username = uname;
+        wl = (0,0);
+        blocked = [];
+        key = None;
+        seed = s;
+        hashed = h;
+      } in
+    Hashtbl.add clients uname info;
+    (Nothing, Success)
 
 let handle_auth u pswd = 
   let fail = (Nothing, Fail "Invalid username or password\n") in
@@ -392,3 +395,9 @@ let handle_request = function
   | Resetgame (id,gr) -> reset_game id gr 
   | AddToRoom (user, target, crname) -> add_to_room user target crname
   | LeaveRoom (user, crname) -> leave_room user crname
+
+let handle_request = function
+  | (None, Register (identifier, pswd)) -> handle_reg identifier pswd
+  | (None, Auth (identifier, pswd)) -> handle_auth identifier pswd  
+  | (Some ((name, key), quest) ->
+

@@ -27,18 +27,11 @@ type msg =
     timestamp : float
   }
 
-(* [msg_hist] is the type used to request the message history
- * of a chatroom. the timestamp represents the time of the last
- * message the client has on record 
-type get_msgs =
-  {
-    user : string;
-    room : chatroom;
-    timestamp : float option;
-  }*)
 
 (* indicates whether a request was successful *)
 type success = Success | Fail of string
+
+type identifier = (id * int) option [@@deriving sexp] 
 
 (* [resp_header] contains the meta information
  * indicating what type of a response this is.
@@ -47,7 +40,7 @@ type resp_header = Message | Login*)
 
 (* request is the type of requests that the client
  * may send to the server*)
-type request = 
+type request_content = 
   | Message of msg
   | Register of id * string 
   | Auth of id * string
@@ -66,6 +59,8 @@ type request =
   | Resetgame of id * gameroom 
   | AddToRoom of id * id * string 
   | LeaveRoom of id * string [@@deriving sexp]
+
+type request = identifier * request_content [@@deriving sexp]
 
 type resp = 
   | Chatroom of chatroom

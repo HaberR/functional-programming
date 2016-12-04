@@ -16,6 +16,8 @@ module type RequesterMaker =
 
 module MakeRequester (Cl : Chat_client.Client) = struct
 
+  let info = ref None
+
   (*[send_req req] is what the api uses to send
    * requests. It has to be crafted delicately so
    * that it doesn't continuously perform Cl.init.
@@ -31,7 +33,10 @@ module MakeRequester (Cl : Chat_client.Client) = struct
         let s = "connecting to " ^ h ^ " at port " ^ p in
         Lwt_io.write_line Lwt_io.stdout s); 
       let sender = Cl.init h (int_of_string p) in
-      (fun req -> sender >>= fun s -> s req)
+      (fun req_cont -> 
+        sender >>= fun s -> 
+        let req = (!info, req_cont) in
+        s req)
     with
     | Failure s -> print_endline s; exit 1
 
@@ -50,7 +55,12 @@ module MakeRequester (Cl : Chat_client.Client) = struct
 
   let auth identifier pswd =
     let req = Auth (identifier, pswd) in
-    send_req req >|= snd
+    send_req req >|= function
+    | (Sessionkey k, Success) ->
+        info := Some (identifier, k);
+        Success
+    | (_, Success) -> raise ClientError
+    | (_, Fail s) -> Fail s
 
   let see_chatrooms identifier =
     let req = Listrooms identifier in
