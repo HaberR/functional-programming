@@ -6,7 +6,7 @@ open Str
 (* The backbone of the client side. This should
  * have (and make available) all the information
  * that a UI would need to display the current state *)
-module MakeInterface (Quester : Api.Requester) = struct
+module MakeInterface (Quester : Requester.Req) = struct
 
   (********** Reiterating a bunch of type info ******)
   type chat = {
