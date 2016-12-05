@@ -61,11 +61,16 @@ module MakeServer(H : Server_handler.Handler) = struct
     sock
 
   let server =
-    let soc = create_socket () in
-    create_server soc
+    try 
+      let soc = create_socket () in
+      create_server soc
+    with
+    | Unix.Unix_error _ -> 
+        (print_endline "port seems to be busy"; exit 1)
 
-  let () =
-    Lwt_main.run (server ())
+  let _ =
+    try server () |> Lwt_main.run with
+    | _ -> print_endline "unknown error"; exit 1
     
 end
 

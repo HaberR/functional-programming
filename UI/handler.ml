@@ -62,7 +62,7 @@ let _ = Random.self_init ()
 
 let handle_reg uname pswd = 
   if Hashtbl.mem clients uname then 
-    (Nothing, Fail "That username has already been taken")
+    (Nothing, Fail "That username has already been taken\n")
   else 
     let s = Random.int 100000000 in
     let h = Hashtbl.seeded_hash s pswd in

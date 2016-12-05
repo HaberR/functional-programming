@@ -1,4 +1,4 @@
 main:
 	corebuild -pkgs lwt,core,str,lwt.unix interface.byte
 server:
-	corebuild -pkgs lwt,lwt.unix,core,str chat_serv_test.byte
+	corebuild -pkgs lwt,lwt.unix,core,str chat_server.byte
