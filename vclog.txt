@@ -1,3 +1,36 @@
+commit ab11816c415a80449bf182f81fab1a9be424deb1
+Author: Raymond Li <rl577@cornell.edu>
+Date:   Sun Dec 4 23:40:14 2016 -0500
+
+    FIM
+
+ FIM/Makefile           |   4 +
+ FIM/README.txt         |  10 +
+ FIM/api.ml             | 168 ++++++++++
+ FIM/api.mli            |  18 +
+ FIM/chat_client.ml     |  45 +++
+ FIM/chat_server.ml     |  77 +++++
+ FIM/client_args.ml     |  33 ++
+ FIM/handler.ml         | 429 ++++++++++++++++++++++++
+ FIM/interface.ml       | 521 +++++++++++++++++++++++++++++
+ FIM/requester.mli      |  81 +++++
+ FIM/server_args.ml     |   7 +
+ FIM/server_handler.mli |   7 +
+ FIM/type_info.ml       |  95 ++++++
+ FIM/type_info.mli      |  86 +++++
+ FIM/vclog.txt          | 869 +++++++++++++++++++++++++++++++++++++++++++++++++
+ UI/api.ml              |   2 +-
+ UI/api.mli             |   2 +-
+ UI/chat_client.ml      |   2 +-
+ UI/chat_server.ml      |   1 -
+ UI/client_args.ml      |   3 +-
+ UI/handler.ml          |  62 ++--
+ UI/interface.ml        |  95 +++---
+ UI/server_handler.mli  |   3 +-
+ UI/type_info.mli       |   6 -
+ src.zip                | Bin 0 -> 26382 bytes
+ 25 files changed, 2548 insertions(+), 78 deletions(-)
+
 commit a07fc6e7cfab37211c819b6e3e4c22a71c7e7ef0
 Author: Rafael <rmh287@cornell.edu>
 Date:   Sun Dec 4 22:20:15 2016 -0500
