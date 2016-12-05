@@ -372,32 +372,48 @@ let leave_room u crname =
     (Nothing, Success)
   else (Nothing, Fail(u ^ " is not in room " ^ crname))
     
+let valid nm ky =
+  if Hashtbl.mem clients nm then
+    let usr = Hashtbl.find clients nm in
+    match usr.key with
+    | Some k -> k = ky
+    | None -> false
+  else false
+
 
 (***************************************************)
 (****** end of handlers and helpers *****************)
 (***************************************************)
-let handle_request = function 
-  | Register (identifier, pswd) -> handle_reg identifier pswd
-  | Auth (identifier, pswd) -> handle_auth identifier pswd 
-  | Block (user, target) -> handle_block user target
-  | Unblock (user, target) -> handle_unblock user target
+let handle_user_request quest identifier = 
+  match quest with 
+  | Register (_, pswd) -> handle_reg identifier pswd
+  | Auth (_, pswd) -> handle_auth identifier pswd 
+  | Block (_, target) -> handle_block identifier target
+  | Unblock (_, target) -> handle_unblock identifier target
   | Message msg -> post_message msg
-  | Listrooms identifier -> get_rooms identifier
-  | Listmessages (identifier, last, cr) -> get_messages identifier last cr
+  | Listrooms _ -> get_rooms identifier
+  | Listmessages (_, last, cr) -> get_messages identifier last cr
   | Newroom cr -> post_room cr
-  | Getroom (identifier, crname) -> get_room identifier crname
+  | Getroom (_, crname) -> get_room identifier crname
   | Listusers -> get_users ()
   | Newgame gr -> post_game gr
-  | Listgames id -> get_games id 
+  | Listgames _ -> get_games identifier
   | Getwl id -> get_wl id 
-  | Getgame (id, grname) -> handle_get_game id grname
-  | Changegamest (id, gr, st) -> change_game_st id gr st  
-  | Resetgame (id,gr) -> reset_game id gr 
-  | AddToRoom (user, target, crname) -> add_to_room user target crname
-  | LeaveRoom (user, crname) -> leave_room user crname
+  | Getgame (_, grname) -> handle_get_game identifier grname
+  | Changegamest (_, gr, st) -> change_game_st identifier gr st  
+  | Resetgame (_,gr) -> reset_game identifier gr 
+  | AddToRoom (_, target, crname) -> add_to_room identifier target crname
+  | LeaveRoom (_, crname) -> leave_room identifier crname
 
+let bad_key_resp = 
+  (Nothing, Fail "You have an invalid key")
 let handle_request = function
   | (None, Register (identifier, pswd)) -> handle_reg identifier pswd
   | (None, Auth (identifier, pswd)) -> handle_auth identifier pswd  
-  | (Some ((name, key), quest) ->
+  | (None, _) -> bad_key_resp
+  | (Some (name, key), quest) -> 
+      if valid name key then
+        handle_user_request quest name
+      else bad_key_resp
+
 
