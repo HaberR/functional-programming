@@ -9,6 +9,9 @@ open Lwt
  * could fail (ie. a login attempt has the wrong password)
  *)
 
+exception ServerError of string
+exception ClientError
+
 module type RequesterMaker =
  functor (Cl : Chat_client.Client ) -> Requester.Req
 

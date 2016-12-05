@@ -8,7 +8,7 @@ open Lwt
  * out the request, and returns the useful 
  * contents of the deferred response  *)
 
-exception ServerError
+exception ServerError of string
 exception ClientError
 
 module type RequesterMaker =
@@ -46,8 +46,9 @@ module MakeRequester (Cl : Chat_client.Client) = struct
    * no known reason that the request should fail.
    *)
   let handle_response f (cont, succ) =
-    if succ=Success then f cont
-    else raise ServerError
+    match succ with
+    | Success -> f cont
+    | Fail s -> raise (ServerError s)
 
   let register id pswd = 
     let req = Register (id,pswd) in 
@@ -62,8 +63,8 @@ module MakeRequester (Cl : Chat_client.Client) = struct
     | (_, Success) -> raise ClientError
     | (_, Fail s) -> Fail s
 
-  let see_chatrooms identifier =
-    let req = Listrooms identifier in
+  let see_chatrooms () =
+    let req = Listrooms in
     let f = function
       | Chatrooms clst -> clst | _ -> raise ClientError in
     send_req req >|= (handle_response f)
@@ -73,38 +74,43 @@ module MakeRequester (Cl : Chat_client.Client) = struct
       | Users lst -> lst | _ -> raise ClientError in
     send_req Listusers >|= (handle_response f)
  
-  let get_room identifier crname =
-    let req = Getroom (identifier, crname) in
+  let get_room crname =
+    let req = Getroom crname in
     let f = function
     | (Chatroom cr, Success) -> (cr, Success)
     | (_, Success) -> raise ClientError
     | (_,Fail s) -> ({participants = []; name = ""}, Fail s) in
     send_req req >|= f
    
-  let see_messages identifier last cr = 
+  let see_messages last cr = 
     let f = function
       | Messages lst -> lst | _ -> raise ClientError in
-    send_req (Listmessages (identifier, last, cr)) >|= 
+    send_req (Listmessages (last, cr)) >|= 
     (handle_response f)
 
-  let block_user identifier target =
-    let req = Block (identifier, target) in
+  let block_user target =
+    let req = Block target in
     send_req req >|= snd
 
-  let unblock_user identifier target =
-    let req = Unblock (identifier, target) in
+  let unblock_user target =
+    let req = Unblock target in
     send_req req >|= snd
 
-  let send_message identifier cr content =
-    let cont = {
-      user = identifier;
-      room = cr;
-      message = content;
+  let send_message cr content =
+    let stub = {
+      user = ""; 
+      room = cr; 
+      message = content; 
       timestamp = Unix.time ();
     } in
-    let req = Message cont in
-    send_req req >|= fun resp ->
-    (cont, snd resp)
+    match !info with
+    | Some (identifier, _) ->
+      let cont = {stub with user = identifier} in
+      let req = Message cont in
+      send_req req >|= fun resp ->
+      (cont, snd resp)
+    | None -> 
+      (stub, Type_info.Fail "Login first!") |> return
 
   let new_room members crname =
     let req = Newroom {
@@ -119,15 +125,15 @@ module MakeRequester (Cl : Chat_client.Client) = struct
       players = members }
     in send_req req >|= snd 
   
-  let see_games id = 
-    let req = Listgames id in
+  let see_games () = 
+    let req = Listgames in
     let f = function
     | Gamerooms glst -> glst 
     | _ -> raise ClientError 
     in send_req req >|= (handle_response f)
 
-  let get_game id grname =
-    let req = Getgame (id, grname) in
+  let get_game grname =
+    let req = Getgame grname in
     let f = function
       | (Gamestate (gr,st), Success) -> ((gr,st), Success) 
       | (_, Success) -> raise ClientError
@@ -135,27 +141,27 @@ module MakeRequester (Cl : Chat_client.Client) = struct
     in 
     send_req req >|= f
 
-  let fill_board id gr sq_num = 
-    let req = Changegamest (id, gr, sq_num) in 
+  let fill_board gr sq_num = 
+    let req = Changegamest (gr, sq_num) in 
     send_req req >|= snd 
 
-  let reset_board id gr = 
-    let req = Resetgame (id,gr) in 
+  let reset_board gr = 
+    let req = Resetgame gr in 
     send_req req >|= snd 
 
-  let getwl id = 
-    let req = Getwl id in 
+  let getwl () = 
+    let req = Getwl in 
     let f = function 
     | Wl (w,l) -> (w,l) 
     | _ -> raise ClientError 
     in send_req req >|= (handle_response f)   
 
-  let add_user_to_room user target crname =
-    let req = AddToRoom (user, target, crname) in
+  let add_user_to_room target crname =
+    let req = AddToRoom (target, crname) in
     send_req req >|= snd
 
-  let leave_room user crname =
-    let req = LeaveRoom (user, crname) in
+  let leave_room crname =
+    let req = LeaveRoom crname in
     send_req req >|= snd
 
 end

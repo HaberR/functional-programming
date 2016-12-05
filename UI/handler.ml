@@ -386,31 +386,31 @@ let valid nm ky =
 (***************************************************)
 let handle_user_request quest identifier = 
   match quest with 
-  | Register (_, pswd) -> handle_reg identifier pswd
-  | Auth (_, pswd) -> handle_auth identifier pswd 
-  | Block (_, target) -> handle_block identifier target
-  | Unblock (_, target) -> handle_unblock identifier target
+  (*| Register (_, pswd) -> handle_reg identifier pswd
+  | Auth (_, pswd) -> handle_auth identifier pswd *)
+  | Block (target) -> handle_block identifier target
+  | Unblock (target) -> handle_unblock identifier target
   | Message msg -> post_message msg
-  | Listrooms _ -> get_rooms identifier
-  | Listmessages (_, last, cr) -> get_messages identifier last cr
+  | Listrooms -> get_rooms identifier
+  | Listmessages (last, cr) -> get_messages identifier last cr
   | Newroom cr -> post_room cr
-  | Getroom (_, crname) -> get_room identifier crname
+  | Getroom (crname) -> get_room identifier crname
   | Listusers -> get_users ()
   | Newgame gr -> post_game gr
-  | Listgames _ -> get_games identifier
-  | Getwl id -> get_wl id 
-  | Getgame (_, grname) -> handle_get_game identifier grname
-  | Changegamest (_, gr, st) -> change_game_st identifier gr st  
-  | Resetgame (_,gr) -> reset_game identifier gr 
-  | AddToRoom (_, target, crname) -> add_to_room identifier target crname
-  | LeaveRoom (_, crname) -> leave_room identifier crname
+  | Listgames -> get_games identifier
+  | Getwl -> get_wl identifier
+  | Getgame grname -> handle_get_game identifier grname
+  | Changegamest (gr, st) -> change_game_st identifier gr st  
+  | Resetgame gr -> reset_game identifier gr 
+  | AddToRoom ( target, crname) -> add_to_room identifier target crname
+  | LeaveRoom crname -> leave_room identifier crname
 
 let bad_key_resp = 
   (Nothing, Fail "You have an invalid key")
 let handle_request = function
   | (None, Register (identifier, pswd)) -> handle_reg identifier pswd
   | (None, Auth (identifier, pswd)) -> handle_auth identifier pswd  
-  | (None, _) -> bad_key_resp
+  | (None, a) -> (Nothing, Fail ("this is the bad key " ^ (Type_info.req_to_string (None, a))))
   | (Some (name, key), quest) -> 
       if valid name key then
         handle_user_request quest name

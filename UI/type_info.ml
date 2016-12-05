@@ -34,21 +34,21 @@ type request_content =
   | Message of msg
   | Register of id * string 
   | Auth of id * string
-  | Block of id * id
-  | Unblock of id * id
-  | Listrooms of id
-  | Listmessages of id * msg option * chatroom
+  | Block of id
+  | Unblock of id
+  | Listrooms 
+  | Listmessages of msg option * chatroom
   | Newroom of chatroom 
-  | Getroom of id * string
+  | Getroom of string
   | Listusers 
   | Newgame of gameroom 
-  | Listgames of id 
-  | Getgame of id * string 
-  | Getwl of id 
-  | Changegamest of id * gameroom * int
-  | Resetgame of id * gameroom 
-  | AddToRoom of id * id * string 
-  | LeaveRoom of id * string [@@deriving sexp]
+  | Listgames 
+  | Getgame of string 
+  | Getwl 
+  | Changegamest of gameroom * int
+  | Resetgame of gameroom 
+  | AddToRoom of id * string 
+  | LeaveRoom of string [@@deriving sexp]
 
 type request = identifier * request_content [@@deriving sexp]
 

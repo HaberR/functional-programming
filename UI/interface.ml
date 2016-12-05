@@ -176,7 +176,7 @@ module MakeInterface (Quester : Requester.Req) = struct
   (* I actually need to have that type annotation there
    * to get this thing to compile... Not a great sign *)
   let handle_ls_rooms () =
-    Quester.see_chatrooms !current_state.info.username >>= fun clst ->
+    Quester.see_chatrooms () >>= fun clst ->
     let disp_rm ({name = nm; participants = mems} : Type_info.chatroom) = 
       display_title_list nm mems in
     let disp_all lst =
@@ -186,7 +186,7 @@ module MakeInterface (Quester : Requester.Req) = struct
   (*[handle_ls_games ()] is called when the user tries to list the
    *games they are in. Displays the games and players in a nice way*)
   let handle_ls_games () = 
-    Quester.see_games !current_state.info.username >>= fun glst ->
+    Quester.see_games () >>= fun glst ->
     let disp_gm ({name = n ; players = p} : Type_info.gameroom) =
       display_title_list n p in 
     let disp_all lst = 
@@ -196,7 +196,7 @@ module MakeInterface (Quester : Requester.Req) = struct
   (*[handle_getwl ()] is called when the user tries to get their win-loss.
    *prints it out as: W-L*)
   let handle_getwl () = 
-    Quester.getwl !current_state.info.username >>= fun (w,l) ->
+    Quester.getwl () >>= fun (w,l) ->
     lprint ((string_of_int w)^"-"^(string_of_int l))
 
   let handle_exit_room () = 
@@ -239,8 +239,7 @@ module MakeInterface (Quester : Requester.Req) = struct
     | [] -> old
 
   let refresh_messages {cr = c; last = m} =
-    let uid = !current_state.info.username in
-    Quester.see_messages uid m c >>= fun mlist ->
+    Quester.see_messages m c >>= fun mlist ->
     if check_response_validity m then
       (*let (m', mlist') = shorten_messages m mlist in*)
       let last' = last_elem m mlist in
@@ -252,8 +251,7 @@ module MakeInterface (Quester : Requester.Req) = struct
     else return ()
 
   let handle_send_message {cr = c; last = _} s = 
-    let uid = !current_state.info.username in
-    Quester.send_message uid c s >>= fun (msg, succ) ->
+    Quester.send_message c s >>= fun (msg, succ) ->
     match succ with
     | Success -> 
         let mode' = Inchat {last = Some msg; cr = c} in
@@ -263,8 +261,7 @@ module MakeInterface (Quester : Requester.Req) = struct
   (*[refresh_game game] makes sure the client's version of the game is 
    *always up to date with the server's version*)
   let refresh_game {gr = g ; last_state = last} =
-    let uid = !current_state.info.username in 
-    Quester.get_game uid g.name >>= fun (gr_st,_) ->
+    Quester.get_game g.name >>= fun (gr_st,_) ->
     let st = snd gr_st in 
     (*do nothing if game is up to date or user is no longer in the game*)
     if check_game_state st last || !current_state.mode = General then 
@@ -288,16 +285,12 @@ module MakeInterface (Quester : Requester.Req) = struct
 
   let handle_enter_room s =
     let nm = Str.matched_group 1 s in
-    let uid = !current_state.info.username in
-    Quester.get_room uid nm >>= fun ((crm : Type_info.chatroom), succ) ->
+    Quester.get_room nm >>= fun ((crm : Type_info.chatroom), succ) ->
     match succ with
-    | Success -> current_state := {
-      mode = Inchat {
-        last = None;
-        cr = crm
-      };
-      info = {username = uid};
-      }; lprint ("entered " ^ crm.name ^ "\n") >>= fork_refresh
+    | Success -> 
+        let mode' = Inchat { last = None; cr = crm} in
+        current_state := { !current_state with mode = mode'};
+        lprint ("entered " ^ crm.name ^ "\n") >>= fork_refresh
     | Fail s -> lprint s
 
   (*[handle_enter_game s] is called when a user tries to enter a game with
@@ -306,8 +299,7 @@ module MakeInterface (Quester : Requester.Req) = struct
   let handle_enter_game s = 
     (*extracts the game name from [s]*)
     let nm = Str.matched_group 1 s in 
-    let uid = !current_state.info.username in 
-    Quester.get_game uid nm >>= fun (((grm : Type_info.gameroom),_), succ) ->
+    Quester.get_game nm >>= fun (((grm : Type_info.gameroom),_), succ) ->
     match succ with 
     | Success -> 
       (set_game {gr=grm;last_state=[]} ; 
@@ -326,7 +318,6 @@ module MakeInterface (Quester : Requester.Req) = struct
   (*[handle_fill game inpt] handles trying to fill a square in 
    *the game [game]*)
   let handle_fill {gr = g ; last_state = st} inpt = 
-    let uid = !current_state.info.username in 
     let sq_num = try Str.matched_group 1 inpt |> int_of_string 
                  with _ -> -1 
     in
@@ -335,42 +326,37 @@ module MakeInterface (Quester : Requester.Req) = struct
     else  
       (*(current_state := {!current_state with mode = Ingame {gr=g;last_state=st}} ;*)
       (set_game {gr=g;last_state=st} ; 
-      Quester.fill_board uid g sq_num >>= function 
+      Quester.fill_board g sq_num >>= function 
       | Success -> return () 
       | Fail s -> lprint s)
 
   (*[handle_reset g] handles resetting the game g*)
   let handle_reset g = 
-    let uid = !current_state.info.username in 
-    Quester.reset_board uid g.gr >>= function 
+    Quester.reset_board g.gr >>= function 
     | Success -> return ()
     | Fail s -> lprint s
 
   let handle_leave_room s =
     let crname = Str.matched_group 1 s in
-    let uid = !current_state.info.username in
-    Quester.leave_room uid crname >>= function
+    Quester.leave_room crname >>= function
     | Success -> return ()
     | Fail s -> lprint s
 
   let handle_block s =
     let nm = Str.matched_group 1 s in
-    let uid = !current_state.info.username in
-    Quester.block_user uid nm >>= function
+    Quester.block_user nm >>= function
     | Success -> return ()
     | Fail s -> lprint s
 
   let handle_unblock s =
     let nm = Str.matched_group 1 s in
-    let uid = !current_state.info.username in
-    Quester.unblock_user uid nm >>= function
+    Quester.unblock_user nm >>= function
     | Success -> return ()
     | Fail s -> lprint s
 
   let handle_add_to_room {cr = c; last = l} inpt =
     let nm = Str.matched_group 1 inpt in
-    let uid = !current_state.info.username in
-    Quester.add_user_to_room uid nm c.name >>= function
+    Quester.add_user_to_room nm c.name >>= function
     | Success -> 
         let newrm = {c with participants = inpt :: c.participants} in
         let cht' = {cr = newrm; last = l} in
@@ -508,8 +494,11 @@ module MakeInterface (Quester : Requester.Req) = struct
 
   let _ = 
     try run () |> Lwt_main.run with
-    | Unix.Unix_error _ -> print_endline bad_server_msg; exit 0
-    | _ -> print_endline "Unknown error."; exit 0
+    | Unix.Unix_error _ -> 
+        print_endline bad_server_msg; exit 1
+    | Api.ServerError s -> 
+        print_endline ("Failed request yields " ^ s); exit 1
+    | _ -> print_endline "Unknown error."; exit 1
 
 end
 
