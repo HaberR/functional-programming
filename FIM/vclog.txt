@@ -1,0 +1,869 @@
+commit a07fc6e7cfab37211c819b6e3e4c22a71c7e7ef0
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sun Dec 4 22:20:15 2016 -0500
+
+    minor
+
+ UI/Makefile          |  2 +-
+ UI/chat_serv_test.ml | 73 ------------------------------------------------
+ UI/chat_server.ml    | 78 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ UI/handler.ml        |  2 +-
+ 4 files changed, 80 insertions(+), 75 deletions(-)
+
+commit 9c52f827c6c077d55461b80daae6ce6240ca6224
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sun Dec 4 21:44:21 2016 -0500
+
+    security functions
+
+ UI/api.ml        | 76 ++++++++++++++++++++++++++++++--------------------------
+ UI/api.mli       |  3 +++
+ UI/handler.ml    | 30 +++++++++++-----------
+ UI/interface.ml  | 57 +++++++++++++++++-------------------------
+ UI/requester.mli | 26 +++++++++----------
+ UI/type_info.ml  | 24 +++++++++---------
+ UI/type_info.mli | 26 +++++++++----------
+ 7 files changed, 120 insertions(+), 122 deletions(-)
+
+commit 2a908cc368ea4d0f71ab7f46762467d6ab19cc07
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sun Dec 4 20:52:20 2016 -0500
+
+    handler seems to perform authentication alright
+
+ UI/handler.ml | 48 ++++++++++++++++++++++++++++++++----------------
+ 1 file changed, 32 insertions(+), 16 deletions(-)
+
+commit f01cb977cd589fe04f1503634f601f3be0e85a74
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sun Dec 4 13:21:45 2016 -0500
+
+    changes
+
+ UI/api.ml        | 14 ++++++++++++--
+ UI/handler.ml    | 33 +++++++++++++++++++++------------
+ UI/type_info.ml  |  6 +++++-
+ UI/type_info.mli | 15 +++++----------
+ 4 files changed, 43 insertions(+), 25 deletions(-)
+
+commit cb5336e70ff5f55739e0c256ad3396cd0419e115
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sun Dec 4 12:21:13 2016 -0500
+
+    moved code around a bit
+
+ UI/chat_serv_test.ml | 522 +++++++--------------------------------------------
+ UI/handler.ml        | 394 ++++++++++++++++++++++++++++++++++++++
+ UI/test.ml           |  31 ---
+ 3 files changed, 461 insertions(+), 486 deletions(-)
+
+commit 1a9f5180ceadbd67542bf1c80ec1032f42076f8a
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sun Dec 4 12:03:03 2016 -0500
+
+    cleaned up mli files a bit
+
+ UI/api.ml             | 42 +------------------------
+ UI/api.mli            | 87 +--------------------------------------------------
+ UI/interface.ml       |  2 +-
+ UI/requester.mli      | 81 +++++++++++++++++++++++++++++++++++++++++++++++
+ UI/server_handler.mli |  6 ++++
+ 5 files changed, 90 insertions(+), 128 deletions(-)
+
+commit 481cdaefd50981d096766d7ed2cf6debfc262af7
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sat Dec 3 23:44:18 2016 -0500
+
+    small fix
+
+ UI/interface.ml | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+commit e57d2f6a9856f729042e3ecbf99d6fe723ab7fda
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sat Dec 3 22:49:54 2016 -0500
+
+    some changes to security
+
+ UI/.ocamlinit        |  2 ++
+ UI/api.ml            | 12 --------
+ UI/api.mli           |  1 -
+ UI/chat_serv_test.ml | 48 ++++++++++++++++++-------------
+ UI/interface.ml      | 81 ++++++++++++++++++++++++----------------------------
+ UI/type_info.ml      |  4 +--
+ UI/type_info.mli     |  5 ++--
+ 7 files changed, 72 insertions(+), 81 deletions(-)
+
+commit 8768aacf8ba243778398d191067fd1f1c771ccef
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sat Dec 3 20:58:49 2016 -0500
+
+    specs added, minor tweeks to server
+
+ UI/api.ml            |  4 ++--
+ UI/api.mli           | 38 +++++++++++++++++++++++++++++----
+ UI/chat_serv_test.ml | 60 ++++++++++++++++++++++++++++++++++------------------
+ 3 files changed, 75 insertions(+), 27 deletions(-)
+
+commit b5411499372c4b5258f7618c1eb1dc4c6083abb6
+Merge: 09e5a40 ca35278
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sat Dec 3 17:51:16 2016 -0500
+
+    Merge branch 'master' of https://github.coecis.cornell.edu/bk376/cs-3110-final-project
+
+commit 09e5a40396b59154720f945e6215f49335fb9d8e
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sat Dec 3 17:51:10 2016 -0500
+
+    chat client stuff
+
+ UI/chat_client.ml | 34 +++++++++++++++++++---------------
+ 1 file changed, 19 insertions(+), 15 deletions(-)
+
+commit cbe8e96ff89fb1e14a813c0b1b02526e441c45f6
+Merge: c3d84fd d9fdbe2
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sat Dec 3 17:49:52 2016 -0500
+
+    Merge branch 'master' of https://github.coecis.cornell.edu/bk376/cs-3110-final-project
+
+commit ca3527822120b4b8492100ad199db82d332e8aa6
+Author: Raymond Li <rl577@cornell.edu>
+Date:   Sat Dec 3 17:42:39 2016 -0500
+
+    cleaned up check_victory
+
+ UI/type_info.ml | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+commit c3d84fd45ad20fec0232a73d12b0e2520bd8accb
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sat Dec 3 17:42:36 2016 -0500
+
+    refactored
+
+ UI/api.ml              | 10 +++++-----
+ UI/api.mli             |  7 +------
+ UI/chat_client.ml      | 41 +++++++++++++++++++++++++++++++++++++++++
+ UI/chat_client_test.ml | 33 ---------------------------------
+ UI/interface.ml        | 47 ++++++++++++++++++++++++++++++++++-------------
+ 5 files changed, 81 insertions(+), 57 deletions(-)
+
+commit d9fdbe2d761a2e520ecd3029843ad996ec8308f7
+Author: Raymond Li <rl577@cornell.edu>
+Date:   Sat Dec 3 17:38:12 2016 -0500
+
+    added draw condition to ttt
+
+ UI/api.ml            | 24 ------------------------
+ UI/api.mli           | 28 +++++++++++++++++++++++++---
+ UI/chat_serv_test.ml |  4 ++--
+ UI/interface.ml      | 12 +++++++-----
+ UI/type_info.ml      | 21 +++++++++++----------
+ UI/type_info.mli     |  5 ++++-
+ 6 files changed, 49 insertions(+), 45 deletions(-)
+
+commit cc7ef738a69be9c8c0de9fc3959ae66441afcc22
+Merge: 4f41000 ee0413e
+Author: Raymond Li <rl577@cornell.edu>
+Date:   Sat Dec 3 17:00:17 2016 -0500
+
+    fix status merge conflict
+
+commit ee0413e91c3e3d3459e00bb485e5930b0185baad
+Merge: 9eaee82 2056209
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sat Dec 3 16:59:54 2016 -0500
+
+    Merge branch 'master' of https://github.coecis.cornell.edu/bk376/cs-3110-final-project
+
+commit 4f41000720f8bfe95df4f4710e275e2ef2fbf66a
+Author: Raymond Li <rl577@cornell.edu>
+Date:   Sat Dec 3 16:57:52 2016 -0500
+
+    misc trimming
+
+ UI/interface.ml | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
+
+commit 9eaee82f93b4cfaf416dd32fa969a1195c56748c
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sat Dec 3 16:44:16 2016 -0500
+
+    specs added
+
+ UI/api.ml              | 29 ++++++++++++++++++++-------
+ UI/api.mli             |  4 ----
+ UI/chat_client_test.ml | 53 ++++++++------------------------------------------
+ UI/chat_serv_test.ml   |  4 +---
+ 4 files changed, 31 insertions(+), 59 deletions(-)
+
+commit 20562096da222c602c37e806c1af06e8bfd22989
+Author: Raymond Li <rl577@cornell.edu>
+Date:   Sat Dec 3 16:44:03 2016 -0500
+
+    cleaned up old unused stuff
+
+ UI/interface.ml | 12 +-----------
+ 1 file changed, 1 insertion(+), 11 deletions(-)
+
+commit 4ddb9471801226f28531307ca3b0d655817d5896
+Merge: 46571fb 964397b
+Author: Raymond Li <rl577@cornell.edu>
+Date:   Sat Dec 3 16:40:59 2016 -0500
+
+    Merge branch 'master' of https://github.coecis.cornell.edu/bk376/cs-3110-final-project
+
+commit 46571fb1cf553eecd2087a85934b101ac5f8f453
+Author: Raymond Li <rl577@cornell.edu>
+Date:   Sat Dec 3 16:40:50 2016 -0500
+
+    finalized ttt + better specs
+
+ UI/api.ml            |  46 ++++++++++-----------
+ UI/chat_serv_test.ml |  68 ++++++++++++++++++++++--------
+ UI/interface.ml      | 114 ++++++++++++++++++++++++++-------------------------
+ 3 files changed, 131 insertions(+), 97 deletions(-)
+
+commit 964397ba5c49f135da0c0fbdc276fb6e2ab17d73
+Author: bk376 <bk376@cornell.edu>
+Date:   Sat Dec 3 16:37:05 2016 -0500
+
+    reject id with spaces
+
+ UI/interface.ml | 19 +++++++++++--------
+ 1 file changed, 11 insertions(+), 8 deletions(-)
+
+commit d5d57bf4b2e24304575bc4310013922cbc479d90
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sat Dec 3 16:29:10 2016 -0500
+
+    small bit of cleaning
+
+ UI/interface.ml       | 19 ++++---------------
+ UI/interface_dated.ml | 52 ---------------------------------------------------
+ UI/type_info.ml       |  9 ---------
+ 3 files changed, 4 insertions(+), 76 deletions(-)
+
+commit 97c2ee34f936acf3a5ec97c55515a66feb877def
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sat Dec 3 16:11:44 2016 -0500
+
+    more graceful failures. Isolated arg parsing
+
+ UI/api.ml            | 18 ++++++++++--------
+ UI/chat_serv_test.ml | 10 ++++++----
+ UI/client_args.ml    | 32 ++++++++++++++++++++++++++++++++
+ UI/interface.ml      | 10 ++++++++--
+ UI/server_args.ml    |  7 +++++++
+ 5 files changed, 63 insertions(+), 14 deletions(-)
+
+commit e070271c3af7600ccebd857ac396902eb31cf8f2
+Author: bk376 <bk376@cornell.edu>
+Date:   Sat Dec 3 15:43:10 2016 -0500
+
+    ls rooms and users
+
+ UI/interface.ml | 10 ++--------
+ 1 file changed, 2 insertions(+), 8 deletions(-)
+
+commit e87e449661edd9c4eca97aa6ba6cc2eb8a916c9e
+Author: bk376 <bk376@cornell.edu>
+Date:   Sat Dec 3 15:33:31 2016 -0500
+
+    ls rooms and users
+
+ UI/interface.ml | 10 +++-------
+ 1 file changed, 3 insertions(+), 7 deletions(-)
+
+commit 0649aabb328fd315fab6bb8792bd727f525380af
+Author: Raymond Li <rl577@cornell.edu>
+Date:   Sat Dec 3 00:26:55 2016 -0500
+
+    wl victory&turns but turns bug upon exit
+
+ UI/api.ml            | 15 +++++++++
+ UI/api.mli           |  4 +++
+ UI/chat_serv_test.ml | 40 ++++++++++++++++++++---
+ UI/interface.ml      | 92 ++++++++++++++++++++++++++++++++++++++++------------
+ UI/type_info.ml      | 19 ++++++++++-
+ UI/type_info.mli     |  9 +++--
+ 6 files changed, 149 insertions(+), 30 deletions(-)
+
+commit 96899a02ac68c87086667225b04ac357034abc76
+Author: bk376 <bk376@cornell.edu>
+Date:   Fri Dec 2 22:43:48 2016 -0500
+
+    Mask password
+
+ UI/interface.ml | 35 ++++++++++++++++++++++-------------
+ 1 file changed, 22 insertions(+), 13 deletions(-)
+
+commit 5e1a7b8c8d1fa417a071a908ae49792d80830142
+Author: Raymond Li <rl577@cornell.edu>
+Date:   Fri Dec 2 16:02:09 2016 -0500
+
+    ttt x/o and fixed board update
+
+ UI/api.ml            |  5 ++++
+ UI/api.mli           |  1 +
+ UI/chat_serv_test.ml | 23 ++++++++++++++++-
+ UI/interface.ml      | 70 +++++++++++++++++++++++++++++++++++++++-------------
+ UI/type_info.ml      |  3 ++-
+ UI/type_info.mli     |  6 +++--
+ 6 files changed, 87 insertions(+), 21 deletions(-)
+
+commit 5f8fae142428d7bf424e05e4a56f24f61da6bba8
+Merge: 54af50b b448b82
+Author: Raymond Li <rl577@cornell.edu>
+Date:   Thu Dec 1 17:27:48 2016 -0500
+
+    ttt start merged
+
+commit 54af50b8b2dd524f1830641d83b76ed2c0d94fc5
+Author: Raymond Li <rl577@cornell.edu>
+Date:   Thu Dec 1 16:56:26 2016 -0500
+
+    tic tac toe start
+
+ UI/Makefile          |   4 +-
+ UI/api.ml            |  44 ++++++++++++++++++++-
+ UI/api.mli           |   6 +++
+ UI/chat_serv_test.ml |  49 ++++++++++++++++++++++-
+ UI/interface.ml      | 108 +++++++++++++++++++++++++++++++++++++++++++++------
+ UI/type_info.ml      |  16 +++++++-
+ UI/type_info.mli     |  18 ++++++++-
+ 7 files changed, 227 insertions(+), 18 deletions(-)
+
+commit b448b82b6cf71eacb4b76a3524535ef51ac9769e
+Author: Rafael <rmh287@cornell.edu>
+Date:   Thu Dec 1 16:48:25 2016 -0500
+
+    small bug fix, leaving added
+
+ UI/api.ml            |  14 ++++--
+ UI/api.mli           |   2 +
+ UI/chat_serv_test.ml | 126 ++++++++++++++++++++++++++++-----------------------
+ UI/interface.ml      |   8 ++++
+ UI/type_info.ml      |   3 +-
+ UI/type_info.mli     |   3 +-
+ 6 files changed, 94 insertions(+), 62 deletions(-)
+
+commit 8dcc82592604453dbba67b66fbb57aa3647193ae
+Author: bk376 <bk376@cornell.edu>
+Date:   Thu Dec 1 00:03:15 2016 -0500
+
+    ls rooms corrected
+
+ UI/chat_serv_test.ml | 35 +++++++++--------------------------
+ UI/interface.ml      | 49 ++++++++++++++++++++++---------------------------
+ 2 files changed, 31 insertions(+), 53 deletions(-)
+
+commit 71baf51f911f849c3b3db6add2d8c849f1d53ad1
+Merge: d107b68 27d2760
+Author: Rafael <rmh287@cornell.edu>
+Date:   Wed Nov 30 22:12:21 2016 -0500
+
+    Merge branch 'master' of https://github.coecis.cornell.edu/bk376/cs-3110-final-project
+
+commit 27d27603d446ccc46d9d5597cc6ac9bba6a5ffdf
+Author: bk376 <bk376@cornell.edu>
+Date:   Wed Nov 30 21:25:59 2016 -0500
+
+    authentication added. Still working on telenet issue
+
+ UI/api.ml            | 12 +++++++++
+ UI/api.mli           |  4 +++
+ UI/chat_serv_test.ml | 41 ++++++++++++++++++++++++-----
+ UI/interface.ml      | 74 ++++++++++++++++++++++++++++++++++++----------------
+ UI/type_info.ml      |  2 ++
+ UI/type_info.mli     |  2 ++
+ 6 files changed, 107 insertions(+), 28 deletions(-)
+
+commit d107b680a1bf6210d5dc645f6cd17647142acdac
+Author: Rafael <rmh287@cornell.edu>
+Date:   Wed Nov 30 16:45:11 2016 -0500
+
+    added connecting to server over network
+
+ UI/api.ml            |  8 +++++++-
+ UI/chat_serv_test.ml | 13 ++++++++++++-
+ 2 files changed, 19 insertions(+), 2 deletions(-)
+
+commit f739ced2c7638102fd685eb068ecfbd94737a081
+Author: Rafael <rmh287@cornell.edu>
+Date:   Tue Nov 29 22:06:26 2016 -0500
+
+    moved message list truncation to server
+
+ UI/api.ml            |  6 +++---
+ UI/api.mli           |  2 +-
+ UI/chat_serv_test.ml | 23 ++++++++++++++++++++---
+ UI/interface.ml      | 34 ++++++++++++----------------------
+ UI/type_info.ml      |  2 +-
+ UI/type_info.mli     |  2 +-
+ 6 files changed, 38 insertions(+), 31 deletions(-)
+
+commit 3838eafff47e98be8eabd584a23dba5fff47ba94
+Author: Rafael <rmh287@cornell.edu>
+Date:   Tue Nov 29 21:27:28 2016 -0500
+
+    blocking/unblocking and adding to chatroom are good
+
+ UI/api.ml            | 12 ++++++++++
+ UI/api.mli           |  4 ++++
+ UI/chat_serv_test.ml | 68 ++++++++++++++++++++++++++++++++++++++++------------
+ UI/interface.ml      | 65 +++++++++++++++++++++++++++++++++----------------
+ UI/type_info.ml      |  4 +++-
+ UI/type_info.mli     |  4 +++-
+ 6 files changed, 120 insertions(+), 37 deletions(-)
+
+commit 1010429baced1f56b45c59a297d751c4294384ee
+Merge: 21dc951 b545d80
+Author: Rafael <rmh287@cornell.edu>
+Date:   Tue Nov 29 15:14:49 2016 -0500
+
+    Merge branch 'master' of https://github.coecis.cornell.edu/bk376/cs-3110-final-project
+
+commit 21dc9516e6fcc5120bde3ed452ee36d50bb175d1
+Author: Rafael <rmh287@cornell.edu>
+Date:   Tue Nov 29 13:20:20 2016 -0500
+
+    messaging looks pretty decent
+
+ UI/interface.ml | 34 ++++++++++++++++++++++++----------
+ 1 file changed, 24 insertions(+), 10 deletions(-)
+
+commit 499d41fddacbc77545ce70dd36af9e08bd85519a
+Author: Rafael <rmh287@cornell.edu>
+Date:   Tue Nov 29 12:59:28 2016 -0500
+
+    thread issues solved
+
+ UI/interface.ml | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+commit 4ddee0248dfe92d645c7f599b3ee98f820d3dda4
+Author: Rafael <rmh287@cornell.edu>
+Date:   Mon Nov 28 23:19:20 2016 -0500
+
+    refreshing doesn't stall, but messaging is broken
+
+ UI/api.ml              | 6 ++++--
+ UI/api.mli             | 2 +-
+ UI/chat_client_test.ml | 8 +++++++-
+ UI/interface.ml        | 5 +++--
+ 4 files changed, 15 insertions(+), 6 deletions(-)
+
+commit b545d80072be051ef16c896124dcb92493223729
+Merge: 139edb2 a6173e8
+Author: Rafael <rmh287@cornell.edu>
+Date:   Mon Nov 28 00:54:43 2016 -0500
+
+    Merge branch 'master' of https://github.coecis.cornell.edu/bk376/cs-3110-final-project
+
+commit 139edb2479f506d046b62e044123dec141506eeb
+Author: Rafael <rmh287@cornell.edu>
+Date:   Mon Nov 28 00:45:44 2016 -0500
+
+    added mutex, but no help
+
+ UI/interface.ml | 13 ++++++++++---
+ 1 file changed, 10 insertions(+), 3 deletions(-)
+
+commit 8f16a3b9785dd1d022465665222acc4e903f4cb6
+Author: Rafael <rmh287@cornell.edu>
+Date:   Mon Nov 28 00:22:23 2016 -0500
+
+    chat works with some synchronous problems
+
+ UI/interface.ml | 55 +++++++++++++++++++++++++------------------------------
+ 1 file changed, 25 insertions(+), 30 deletions(-)
+
+commit a2668f97e0ac6c212018a3abf1f72bfa0ee646d6
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sun Nov 27 23:40:53 2016 -0500
+
+    refreshing looks good--just have to make it asyncronous
+
+ UI/api.ml       | 8 +++++---
+ UI/api.mli      | 2 +-
+ UI/interface.ml | 5 +++--
+ 3 files changed, 9 insertions(+), 6 deletions(-)
+
+commit ed098cf35a0a08ea022cbc39ad8fcef51a51674b
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sun Nov 27 23:32:05 2016 -0500
+
+    midway to preventing repeated refreshes
+
+ UI/interface.ml | 65 +++++++++++++++++++++++++++++++++++++++++++--------------
+ 1 file changed, 49 insertions(+), 16 deletions(-)
+
+commit a6173e89676b8f36a35de25b00edf7f2e2679f6d
+Author: bk376 <bk376@cornell.edu>
+Date:   Sun Nov 27 22:54:06 2016 -0500
+
+    mini database
+
+ test/database.ml | 111 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 111 insertions(+)
+
+commit f162ad727c947c5699fe34b95ecd1957bdd2e5a8
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sun Nov 27 22:48:25 2016 -0500
+
+    some form of chatting. Requires manual refresh
+
+ UI/api.ml            | 10 ++++-----
+ UI/api.mli           |  4 ++--
+ UI/chat_serv_test.ml |  7 ++++---
+ UI/commands          |  2 ++
+ UI/interface.ml      | 57 +++++++++++++++++++++++++++++++++++++++++-----------
+ 5 files changed, 57 insertions(+), 23 deletions(-)
+
+commit 4b7b5dd8b87fb960330e0d54bcf10a013c1f1f64
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sun Nov 27 02:14:44 2016 -0500
+
+    enter room done (bugs out for bad room)
+
+ UI/api.ml              | 11 ++++---
+ UI/api.mli             |  4 +--
+ UI/chat_client_test.ml |  3 +-
+ UI/interface.ml        | 87 +++++++++++++++++++++++++++++++-------------------
+ 4 files changed, 64 insertions(+), 41 deletions(-)
+
+commit 51893bd8025af83a8a54c3e3b430c03186bd8160
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sat Nov 26 02:34:31 2016 -0500
+
+    compiles and communication
+
+ UI/Makefile            |  2 +-
+ UI/api.ml              | 24 ++++++++++++++----------
+ UI/api.mli             |  6 ++++--
+ UI/chat_client_test.ml | 17 +++++++++++++----
+ UI/interface.ml        |  2 +-
+ 5 files changed, 33 insertions(+), 18 deletions(-)
+
+commit 1b9be57dfee122ca224dcf22196cc8d858a2d77b
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sat Nov 26 01:39:39 2016 -0500
+
+    server implemented, client needs work
+
+ UI/Makefile            |   2 +
+ UI/api.ml              |   4 +-
+ UI/chat_client_test.ml |   3 +-
+ UI/chat_serv_test.ml   | 208 +++++++++++++++++++++++++++++++++++++++++++++++++
+ UI/commands            |  11 +++
+ UI/dummy_client.ml     |   2 +-
+ UI/interface.ml        | 115 ++++++---------------------
+ UI/type_info.ml        |   5 +-
+ UI/type_info.mli       |   4 +-
+ 9 files changed, 254 insertions(+), 100 deletions(-)
+
+commit 4e83facf734329c96a07bbc4981dc85e299a1e45
+Merge: 66be416 2a9a495
+Author: Rafael <rmh287@cornell.edu>
+Date:   Thu Nov 24 23:38:51 2016 -0500
+
+    Merge branch 'master' of https://github.coecis.cornell.edu/bk376/cs-3110-final-project
+
+commit 66be41672602d2dbe981f59ab40d9acf0e39fbb7
+Author: Rafael <rmh287@cornell.edu>
+Date:   Thu Nov 24 23:38:48 2016 -0500
+
+    client work
+
+ UI/chat_client_test.ml | 55 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 55 insertions(+)
+
+commit 2a9a49561c487e356415c078333f0c20ec586daa
+Author: Raymond Li <rl577@cornell.edu>
+Date:   Thu Nov 24 22:35:24 2016 -0500
+
+    friends list
+
+ test/chat_client_test.ml |  2 --
+ test/chat_serv_test.ml   | 61 ++++++++++++++++++++++++++++++++++++------------
+ 2 files changed, 46 insertions(+), 17 deletions(-)
+
+commit 40da5e6da951655bdce4cabb8b15ed1a277cc7af
+Merge: 21abb35 cc9139e
+Author: Rafael <rmh287@cornell.edu>
+Date:   Wed Nov 23 23:21:48 2016 -0500
+
+    Merge branch 'master' of https://github.coecis.cornell.edu/bk376/cs-3110-final-project
+
+commit 21abb35e1d95b007d5507e714c83f1c8ebfb3b4e
+Author: Rafael <rmh287@cornell.edu>
+Date:   Wed Nov 23 23:21:41 2016 -0500
+
+    pushing incomplete
+
+ UI/.ocamlinit      |   7 ++-
+ UI/Makefile        |   2 +-
+ UI/api.ml          |   2 +-
+ UI/api.mli         |   2 +-
+ UI/backend.ml      | 110 --------------------------------
+ UI/backend.mli     |  38 ------------
+ UI/dummy_client.ml |   3 +-
+ UI/interface.ml    | 179 ++++++++++++++++++++++++++++++++++++++++++++++++-----
+ UI/type_info.ml    |  64 +++++++++++++++++++
+ UI/type_info.mli   |  67 ++++++++++++++++++++
+ UI/types.ml        |  64 -------------------
+ UI/types.mli       |  67 --------------------
+ 12 files changed, 305 insertions(+), 300 deletions(-)
+
+commit cc9139eea19feff02a6976c2d3d1e867967b0c93
+Author: Raymond Li <rl577@cornell.edu>
+Date:   Wed Nov 23 23:10:09 2016 -0500
+
+    getusers command
+
+ test/chat_client_test.ml | 52 +++++++-----------------------------------------
+ test/chat_serv_test.ml   | 23 ++++++++++++++-------
+ 2 files changed, 23 insertions(+), 52 deletions(-)
+
+commit cde388e6fcae25b132c7ecd2c1a82edd4679a078
+Author: Rafael <rmh287@cornell.edu>
+Date:   Wed Nov 23 16:43:21 2016 -0500
+
+    added dummy client. utop not happy
+
+ UI/.ocamlinit      |  2 ++
+ UI/Makefile        |  2 +-
+ UI/api.ml          |  3 +++
+ UI/backend.ml      |  1 +
+ UI/dummy_client.ml | 24 ++++++++++++++++++++++++
+ 5 files changed, 31 insertions(+), 1 deletion(-)
+
+commit 3aed2ec4709d1eabbec34a711df51947a082b5ef
+Merge: b70f53f 53ea539
+Author: Rafael <rmh287@cornell.edu>
+Date:   Wed Nov 23 16:18:17 2016 -0500
+
+    Merge branch 'master' of https://github.coecis.cornell.edu/bk376/cs-3110-final-project
+
+commit b70f53fec910c66931e9e8bfd3af1485cdaf5f48
+Author: Rafael <rmh287@cornell.edu>
+Date:   Wed Nov 23 16:18:14 2016 -0500
+
+    working on interface
+
+ UI/.requester.ml.swp  | Bin 12288 -> 0 bytes
+ UI/interface.ml       |  87 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ UI/interface_dated.ml |  52 ++++++++++++++++++++++++++++++
+ UI/test.ml            |  31 ++++++++++++++++++
+ types.mli             |  51 -----------------------------
+ 5 files changed, 170 insertions(+), 51 deletions(-)
+
+commit 59264b9fd1b91bd989045fcdb937a191d4fbec26
+Author: Rafael <rmh287@cornell.edu>
+Date:   Wed Nov 23 15:38:23 2016 -0500
+
+    failed backend attempt...
+
+ UI/.requester.ml.swp | Bin 0 -> 12288 bytes
+ UI/Makefile          |   2 +-
+ UI/api.ml            | 101 +++++++++++++++++++++++++++++++++++++++++++++++
+ UI/api.mli           |  42 ++++++++++++++++++++
+ UI/backend.ml        | 109 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ UI/backend.mli       |  38 ++++++++++++++++++
+ UI/gui.mli           |   4 --
+ UI/requester.ml      | 101 -----------------------------------------------
+ UI/requester.mli     |  42 --------------------
+ UI/types.native      |   1 -
+ 10 files changed, 291 insertions(+), 149 deletions(-)
+
+commit bc36f51a012399eb4305860fd0bb1f5db7df3564
+Author: Rafael <rmh287@cornell.edu>
+Date:   Wed Nov 23 13:21:33 2016 -0500
+
+    removed state, refactor backend to requester
+
+ UI/Makefile      |   2 +-
+ UI/back_end.ml   | 134 -------------------------------------------------------
+ UI/back_end.mli  |  43 ------------------
+ UI/requester.ml  | 101 +++++++++++++++++++++++++++++++++++++++++
+ UI/requester.mli |  42 +++++++++++++++++
+ UI/types.ml      |   4 +-
+ UI/types.mli     |   4 +-
+ 7 files changed, 148 insertions(+), 182 deletions(-)
+
+commit 53ea53948a5b687faf04bc213b77c2acc785cd80
+Author: Raymond Li <rl577@cornell.edu>
+Date:   Wed Nov 23 12:54:21 2016 -0500
+
+    parallel client
+
+ test/chat_client_test.ml | 101 +++++++++++++++++++++++++++++++----------------
+ test/chat_serv_test.ml   |  37 +++++++++--------
+ 2 files changed, 88 insertions(+), 50 deletions(-)
+
+commit 2c6333e180727f7a3ed65794edf7816229e5cb6b
+Author: Rafael <rmh287@cornell.edu>
+Date:   Wed Nov 23 12:41:53 2016 -0500
+
+    going to change backend to remove state
+
+ UI/Makefile     |  2 ++
+ UI/back_end.ml  | 68 ++++++++++++++++++++++++++++++++++++++-------------------
+ UI/back_end.mli |  6 ++---
+ UI/json.ml      |  0
+ UI/types.ml     | 22 ++++++++++++++++---
+ UI/types.mli    | 12 ++++++++--
+ UI/types.native |  1 +
+ 7 files changed, 81 insertions(+), 30 deletions(-)
+
+commit 479911abe733efa0fbff623d16263235690a06cc
+Author: Rafael <rmh287@cornell.edu>
+Date:   Wed Nov 23 02:04:08 2016 -0500
+
+    req to/from string added
+
+ UI/.types.ml.swp  | Bin 12288 -> 0 bytes
+ UI/.types.mli.swp | Bin 12288 -> 0 bytes
+ UI/types.ml       |  36 ++++++++++++++----------------------
+ UI/types.mli      |  52 +++++++++++-----------------------------------------
+ 4 files changed, 25 insertions(+), 63 deletions(-)
+
+commit 02492e5d6973665f525937c8e68aa281106095f0
+Author: Rafael <rmh287@cornell.edu>
+Date:   Wed Nov 23 01:49:47 2016 -0500
+
+    intermediate saving in changes
+
+ UI/.back_end.ml.swp  | Bin 12288 -> 0 bytes
+ UI/.back_end.mli.swp | Bin 12288 -> 0 bytes
+ UI/.ocamlinit        |   3 +++
+ UI/.types.ml.swp     | Bin 0 -> 12288 bytes
+ UI/.types.mli.swp    | Bin 12288 -> 12288 bytes
+ UI/back_end.ml       |   8 ++++----
+ UI/back_end.mli      |   2 +-
+ UI/json.ml           |   0
+ UI/types.ml          |  56 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ UI/types.mli         |  31 +++++++++++++++++++---------
+ 10 files changed, 86 insertions(+), 14 deletions(-)
+
+commit 3816dbf8c08659e8263f663893734239714187c1
+Author: Rafael <rmh287@cornell.edu>
+Date:   Tue Nov 22 23:56:58 2016 -0500
+
+    made some progress. About to try something
+
+ UI/.back_end.ml.swp  | Bin 0 -> 12288 bytes
+ UI/.back_end.mli.swp | Bin 0 -> 12288 bytes
+ UI/.types.mli.swp    | Bin 0 -> 12288 bytes
+ UI/back_end.ml       | 110 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ UI/back_end.mli      |  43 ++++++++++++++++++++
+ UI/gui.mli           |   4 ++
+ UI/types.mli         |  76 +++++++++++++++++++++++++++++++++++
+ 7 files changed, 233 insertions(+)
+
+commit 002841ff8e85056516a885e372bbb8320b90c740
+Merge: 1c1831f d5f972d
+Author: Rafael <rmh287@cornell.edu>
+Date:   Mon Nov 21 20:04:49 2016 -0500
+
+    Merge branch 'master' of https://github.coecis.cornell.edu/bk376/cs-3110-final-project
+
+commit 1c1831f6b35eb7b17120af833c9dba317709034c
+Author: Rafael <rmh287@cornell.edu>
+Date:   Mon Nov 21 20:04:44 2016 -0500
+
+    not sure what this stuff is...
+
+ client.ml                 |  27 +++++++++---------------
+ interfaces.zip            | Bin 0 -> 2006 bytes
+ interfaces/client.mli     |  31 ++++++++++++++++++++++++++++
+ interfaces/datastruct.mli |  18 ++++++++++++++++
+ interfaces/server.mli     |  19 +++++++++++++++++
+ interfaces/types.mli      |  51 ++++++++++++++++++++++++++++++++++++++++++++++
+ server2.mli               |   0
+ 7 files changed, 129 insertions(+), 17 deletions(-)
+
+commit d5f972df0e54a9330028beba516852da8124b3dc
+Merge: bf164dc d811f90
+Author: Raymond Li <rl577@cornell.edu>
+Date:   Mon Nov 21 19:59:21 2016 -0500
+
+    Merge branch 'master' of https://github.coecis.cornell.edu/bk376/cs-3110-final-project
+
+commit bf164dc3cfba2cc5c953adc148a8670c1f43dd53
+Author: Raymond Li <rl577@cornell.edu>
+Date:   Mon Nov 21 19:58:48 2016 -0500
+
+    client app
+
+ test/Makefile            |  4 ++
+ test/chat_client_test.ml | 49 ++++++++++++++++++++++++
+ test/chat_serv_test.ml   | 99 ++++++++++++++++++++++++++++++++++++++++++++++++
+ test/client_main.ml      |  1 +
+ test/main.ml             |  1 +
+ 5 files changed, 154 insertions(+)
+
+commit d811f901706ca213641d3177d7ce2a66dbb74ed2
+Author: bk376 <bk376@cornell.edu>
+Date:   Wed Nov 9 21:28:04 2016 -0500
+
+    server.mli open datastruct
+
+ server.mli | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit 7d9442df367d3dc62a390d4dc5e74f825d64c540
+Author: Rafael <rmh287@cornell.edu>
+Date:   Wed Nov 9 21:08:26 2016 -0500
+
+    mli files
+
+ .gitignore     |  3 ++-
+ Makefile       |  2 +-
+ client.ml      | 36 ------------------------------------
+ client.mli     | 45 +++++++++++++++++++++++++++++++--------------
+ datastruct.mli | 18 ++++++++++++++++++
+ server.ml      | 38 ++++++++++++++++++++++++++++++++++++++
+ server.mli     | 21 ++++++++++++++++++---
+ types.mli      | 51 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 8 files changed, 159 insertions(+), 55 deletions(-)
+
+commit 82b0d63ce946b3727d059482b8a0a4a520ddc143
+Author: bk376 <bk376@cornell.edu>
+Date:   Wed Nov 9 17:38:15 2016 -0500
+
+    with mli files
+
+ .gitignore  |  2 ++
+ client.mli  | 14 ++++++++++++++
+ main.ml     |  2 +-
+ server.mli  | 26 +++-----------------------
+ server2.mli |  0
+ 5 files changed, 20 insertions(+), 24 deletions(-)
+
+commit eec11f04f439ac7124207c35dcac7a9449d5f9f3
+Author: bk376 <bk376@cornell.edu>
+Date:   Tue Nov 8 00:18:14 2016 -0500
+
+    make and try running ./main.byte
+
+ Makefile    |   2 ++
+ client.ml   |  60 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ main.ml     |   2 ++
+ serv_up.exe | Bin 0 -> 417691 bytes
+ server.ml   |  25 +++++++++++++++++++++++++
+ server.mli  |   8 ++++++--
+ 6 files changed, 95 insertions(+), 2 deletions(-)
+
+commit 7a6a59766b69982d2fbb041150a9d245f8337e77
+Author: Rafael <rmh287@cornell.edu>
+Date:   Sun Nov 6 20:24:43 2016 -0500
+
+    serv_up working and server mli started
+
+ serv_up.ml | 48 ++++++++++++++++++++++++++++++++++++++++++++++++
+ server.mli | 20 ++++++++++++++++++++
+ 2 files changed, 68 insertions(+)
